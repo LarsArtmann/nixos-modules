@@ -1,0 +1,29 @@
+# Collection lib
+
+The systemd hardening spine, extracted from SystemNix `lib/default.nix`
+(portable half only — everything here depends on nixpkgs lib and nothing else).
+
+## Split contract (R2, 2026-11-11)
+
+**Moved here:** `harden`, `hardenUser`, `serviceDefaults*`,
+`serviceOneshotDefaults*`, `onFailure`/`onFailureP0` (NOTE: they reference
+`notify-failure@%n.service` template units — providing those templates is a
+consumer-side concern), `serviceTypes` (generic option helpers only),
+`mkPortGuard`, `mkStateDir`, `mkPoolDirUnit`, `mkSqliteBackupUnit`,
+`mkMetricTextfileCollector`, `unitExecText`, `extractPortLiterals`,
+`mkSecretCheck`, `mkDesktopNotifyService`, `ioTier`, `wrapWithMemoryLimit`.
+
+**Stayed SystemNix (fleet-bound):** `mkOidcGate`, `mkDnsGate` (dnsblockd
+budget semantics), `ports` registry, `mkHttpCheck`/`discordAlert` (gatus
+fleet monitoring), `rocm`, `mkFilesystem`, buildcache helpers, the Pocket ID
+`oidcClientType` (lib/types.nix keeps it SystemNix-side).
+
+## Forked-during-migration
+
+SystemNix `lib/default.nix` KEEPS its local copies while its not-yet-migrated
+modules consume them (123 files import `harden` from the SystemNix path).
+The copies are deleted helper-by-helper as consumers migrate to the
+collection module imports; the final kill (re-pointing SystemNix
+`lib/default.nix` at this lib via the flake input) happens when the last
+consumer moves. Parity diffs + negative-test legs guard against value drift
+between the copies in the meantime.

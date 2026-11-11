@@ -1,0 +1,131 @@
+{ lib }:
+args@{
+  mode ? "system",
+  MemoryMax ? "512M",
+  MemoryHigh ? null,
+  # Throttle before the hard kill. Default: 80% of MemoryMax — the ARGUMENT
+  # ABOVE, not whatever MemoryMax a caller later merges outside this fragment.
+  # Merging a custom MemoryMax alongside a bare `harden {}` call silently
+  # leaves MemoryHigh derived from the 512M default (llama-chat 2026-10-08:
+  # 410M watermark, 10.7G swapped, stuck load). Pass MemoryMax INTO harden.
+  CPUQuota ? "200%", # Hard cap: 2 cores. Prevents CPU runaway from code bugs. Override for AI/build services.
+  ProtectSystem ? "full",
+  ProtectHome ? true,
+  ReadWritePaths ? [ ],
+  RestrictNamespaces ? true,
+  NoNewPrivileges ? true,
+  CapabilityBoundingSet ? "",
+  ...
+}:
+let
+  # Unit LIFECYCLE keys never belong inside a hardening fragment. They are
+  # documented to crash-loop when merged here (the oneshot+Restart=always
+  # class, service-defaults.nix) or silently lose priority in `//` chains.
+  # This throw makes the illegal shape impossible at eval time instead of
+  # failing at unit load — see the "harden {} ExecStart trap" gotcha.
+  lifecycleKeys = [
+    "ExecStart"
+    "ExecStartPre"
+    "ExecStartPost"
+    "ExecStartEx"
+    "ExecStop"
+    "ExecStopPost"
+    "ExecStopEx"
+    "ExecReload"
+    "ExecCondition"
+    "Type"
+    "RemainAfterExit"
+    "Restart"
+  ];
+  lifecycleOffenders = builtins.attrNames (
+    builtins.intersectAttrs (lib.genAttrs lifecycleKeys (_: null)) args
+  );
+  guard =
+    if lifecycleOffenders != [ ] then
+      throw ''
+        harden{} was passed unit lifecycle key(s): ${lib.concatStringsSep ", " lifecycleOffenders}
+        Exec*/Type/RemainAfterExit/Restart NEVER belong inside a hardening
+        fragment — merge them OUTSIDE via lib.mkMerge so priorities survive:
+          serviceConfig = lib.mkMerge [
+            { Type = "oneshot"; ExecStart = "…"; }
+            (harden { MemoryMax = "1G"; })
+          ];
+      ''
+    else
+      true;
+
+  isOverride = v: builtins.isAttrs v && v ? _type && v._type == "override";
+  mkDefault' = v: if isOverride v then v else lib.mkDefault v;
+
+  # systemd memory percentages resolve against TOTAL PHYSICAL RAM, not against
+  # MemoryMax — on a 128G host a literal MemoryHigh = "80%" (~102G) sits far
+  # above the default MemoryMax = 512M and the throttle never engages before
+  # the hard kill. Derive the default from MemoryMax instead.
+  memoryValue = v: if isOverride v then v.content else v;
+  parseMemoryBytes =
+    v:
+    let
+      s = toString (memoryValue v);
+      match = builtins.match "([0-9]+)(K|M|G|T)?" s;
+      multiplier =
+        if match == null then
+          null
+        else
+          {
+            K = 1024;
+            M = 1024 * 1024;
+            G = 1024 * 1024 * 1024;
+            T = 1024 * 1024 * 1024 * 1024;
+            "" = 1;
+          }
+          .${builtins.elemAt match 1};
+    in
+    if match == null then null else (lib.toInt (builtins.elemAt match 0)) * multiplier;
+  defaultMemoryHigh =
+    let
+      maxBytes = parseMemoryBytes MemoryMax;
+    in
+    if maxBytes == null then "80%" else toString (maxBytes * 4 / 5);
+  memoryHigh = if MemoryHigh == null then defaultMemoryHigh else MemoryHigh;
+
+  shared = {
+    PrivateTmp = lib.mkDefault true;
+    ProtectHostname = lib.mkDefault true;
+    RestrictSUIDSGID = lib.mkDefault true;
+    LockPersonality = lib.mkDefault true;
+    RestrictRealtime = lib.mkDefault true;
+    MemoryMax = mkDefault' MemoryMax;
+    MemoryHigh = mkDefault' memoryHigh;
+    CPUQuota = mkDefault' CPUQuota;
+    RestrictNamespaces = mkDefault' RestrictNamespaces;
+    NoNewPrivileges = mkDefault' NoNewPrivileges;
+  };
+
+  systemOnly = {
+    ProtectClock = lib.mkDefault true;
+    ProtectKernelLogs = lib.mkDefault true;
+    ProtectKernelTunables = lib.mkDefault true;
+    ProtectKernelModules = lib.mkDefault true;
+    ProtectControlGroups = lib.mkDefault true;
+    SystemCallArchitectures = lib.mkDefault "native";
+    ProtectSystem = mkDefault' ProtectSystem;
+    ProtectHome = mkDefault' ProtectHome;
+    ReadWritePaths = mkDefault' ReadWritePaths;
+    CapabilityBoundingSet = mkDefault' CapabilityBoundingSet;
+  };
+
+  namedKeys = [
+    "mode"
+    "MemoryMax"
+    "MemoryHigh"
+    "CPUQuota"
+    "ProtectSystem"
+    "ProtectHome"
+    "ReadWritePaths"
+    "RestrictNamespaces"
+    "NoNewPrivileges"
+    "CapabilityBoundingSet"
+  ];
+  passthrough = builtins.removeAttrs args namedKeys;
+in
+builtins.seq guard (shared // lib.optionalAttrs (mode == "system") systemOnly // passthrough)
