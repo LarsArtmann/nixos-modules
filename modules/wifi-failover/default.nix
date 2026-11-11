@@ -147,7 +147,9 @@ in
           Environment = [
             "ENO1_IF=${cfg.ethernetInterface}"
             "FALLBACK_IF=${cfg.fallbackInterface}"
-            "GW=${resolvedGateway}"
+            "GW=${
+              if resolvedGateway == null then "<unset: services.wifi-failover.gateway or networking.defaultGateway>" else resolvedGateway
+            }"
             "POLL_INTERVAL=${toString cfg.pollIntervalSeconds}"
           ];
           ExecStart = lib.getExe wifiFailoverScript;
