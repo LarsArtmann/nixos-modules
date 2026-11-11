@@ -38,7 +38,7 @@
       nixosModules = lib.mapAttrs (name: _: ./modules + "/${name}") moduleDirs;
       modulesArePaths = builtins.all builtins.isPath (builtins.attrValues nixosModules);
 
-      collectionLib = import ./lib { inherit lib; };
+      collectionLib = import ./lib lib;
     in
     assert modulesArePaths; {
       inherit nixosModules;
