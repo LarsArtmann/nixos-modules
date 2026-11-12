@@ -35,12 +35,21 @@ Raw ideas:
   conflict assertion names) once its consumer story is settled
 - Extract further proven pattern modules on demand — collection grows with
   real consumers, not speculatively
+- boot-mirror contract single-sourcing / drift gate: the same contract lives
+  in module assertions, the test throwIfNot chain, the README list, and the
+  negative-leg markers (drift risk; graduate when triplication bites)
+- Module README options-table drift guard (same drift class as above)
+- boot-mirror runtime VM leg — the sync script's bootctl/rsync/diff path has
+  never executed inside this repo's test net
+- Renovate/Dependabot for flake inputs (the nixpkgs unstable pin)
 
 ### 3. Ship eval-time audit gates as modules
 
-The collection charter names "eval-time audit gates" (flake description,
-README) but no audit module exists yet — only the scan surface
-(`unitExecText` / `extractPortLiterals`) ships in `lib`.
+The original collection charter named eval-time audit gates; the flake
+description and README now ship the honest current surface instead, but the
+audit-gate goal stands — only the scan surface (`unitExecText` /
+`extractPortLiterals`, in-repo-tested via `checks.*.lib-eval`) ships in
+`lib` today.
 
 Raw ideas:
 
@@ -54,9 +63,10 @@ Raw ideas:
 Things we are deliberately NOT pursuing and why:
 
 - **Fleet-bound helpers in this collection:** ports registry, gatus helpers,
-  OIDC/DNS gates, rocm, filesystems, buildcache stay SystemNix-side — the
+  OIDC/DNS gates, rocm, buildcache stay SystemNix-side — the
   split contract (`lib/README.md`) keeps this lib portable
-  (nixpkgs-lib-only).
+  (nixpkgs-lib-only). (`mkFilesystem` moved INTO the collection 2026-11-12 —
+  the filesystems guard is fleet-agnostic; SystemNix keeps a forked copy.)
 - **`mkForce` in collection code:** overriding is a consumer right; the
   collection speaks plain / `mkDefault` priorities only.
 - **A general-purpose community module registry:** this collection carries
