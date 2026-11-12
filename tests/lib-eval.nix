@@ -184,16 +184,18 @@
     (expect (backup.services.testdb-backup.unitConfig.RequiresMountsFor == ["/mnt/backup/testdb"]) "mkSqliteBackupUnit: RequiresMountsFor must target the backup dir")
     (expect (backupSvcCfg.Type == "oneshot" && backupSvcCfg.ReadWritePaths == ["/mnt/backup/testdb"]) "mkSqliteBackupUnit: oneshot + ReadWritePaths exactly the backup dir")
     (expect (backup.timers.testdb-backup.timerConfig.Persistent == true && backup.timers.testdb-backup.timerConfig.OnCalendar == "daily") "mkSqliteBackupUnit: timer must be Persistent with the startAt calendar")
-    (expect (builtins.isString backupSvcCfg.ExecStart && lib.hasInfix "testdb-backup" backupSvcCfg.ExecStart) "mkSqliteBackupUnit: ExecStart must be the packaged script")
+    (expect (lib.hasInfix "testdb-backup" (toString backupSvcCfg.ExecStart)) "mkSqliteBackupUnit: ExecStart must be the packaged script")
 
     (expect (collectorSvcCfg.User == "root" && collectorSvcCfg.TimeoutStartSec == "3min") "mkMetricTextfileCollector: root + timeout defaults")
     (expect (lib.hasInfix "mktemp" collector.services.test-collector.script && lib.hasInfix "chmod 644" collector.services.test-collector.script && lib.hasInfix "mv \"$TMP\" \"$OUT\"" collector.services.test-collector.script) "mkMetricTextfileCollector: mktemp/644/atomic-mv wrapper must be intact")
     (expect (collector.timers.test-collector.wantedBy == ["timers.target"] && collector.timers.test-collector.timerConfig.OnCalendar == "hourly") "mkMetricTextfileCollector: timer shape")
 
-    (expect (identityOpts.user._type == "option" && identityOpts.user.default == "svc" && identityOpts.user.type.name == "str") "serviceTypes: systemdServiceIdentity.user must be a str option defaulting to the identity user")
+    (expect (identityOpts.user._type == "option" && identityOpts.user.default == "svc" && identityOpts.user.type == lib.types.str) "serviceTypes: systemdServiceIdentity.user must be a str option defaulting to the identity user")
     (expect (identityOpts.group.default == "svc" && identityOpts.stateDir.default == "/var/lib/svc") "serviceTypes: group + stateDir defaults must derive from defaultUser")
-    (expect (serviceTypes.servicePort 8080 "p" ._type == "option" && (serviceTypes.servicePort 8080 "p").type.name == "port" && (serviceTypes.servicePort 8080 "p").default == 8080) "serviceTypes: servicePort must be a port option with the default passthrough")
-    (expect ((serviceTypes.restartDelay "5s").type.name == "str" && (serviceTypes.stopTimeout "30s").type.name == "str") "serviceTypes: restartDelay/stopTimeout must be str options")
+    (expect ((serviceTypes.servicePort 8080 "p")._type == "option") "serviceTypes: servicePort must be an option")
+    (expect ((serviceTypes.servicePort 8080 "p").type == lib.types.port) "serviceTypes: servicePort type must equal lib.types.port (got ${(serviceTypes.servicePort 8080 "p").type.name})")
+    (expect ((serviceTypes.servicePort 8080 "p").default == 8080) "serviceTypes: servicePort default must pass through")
+    (expect ((serviceTypes.restartDelay "5s").type == lib.types.str && (serviceTypes.stopTimeout "30s").type == lib.types.str) "serviceTypes: restartDelay/stopTimeout must be str options")
 
     (expect (!(builtins.tryEval badFs).success) "mkFilesystem: the contamination guard must throw on cross-filesystem options (discard=async on ext4)")
     (expect (goodFs.options == ["discard=async" "compress=zstd"] && goodFs.neededForBoot == true) "mkFilesystem: legal fs options and extra fileSystems attrs must round-trip (the …-pattern silent-drop class)")

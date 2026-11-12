@@ -165,6 +165,14 @@ run_case wififailover gateway-null wifi-failover-contract fail 'needs a gateway'
 run_case wififailover dual-wan-conflict wifi-failover-contract fail 'conflicts with services.dual-wan' \
   'tests/wifi-failover-contract.nix' 's|dualWanEnabled = false;|dualWanEnabled = true;|'
 
+# ── lib: the pure-eval contracts (tests/lib-eval.nix) must bite ──
+run_case lib green-control lib-eval pass - \
+  'lib/systemd.nix' '-'
+run_case lib lifecycle-guard-stripped lib-eval fail 'lifecycle keys must throw' \
+  'lib/systemd.nix' 's|^    "ExecStart"$|    "ExecStartMutated"|'
+run_case lib fs-guard-stripped lib-eval fail 'contamination guard must throw' \
+  'lib/filesystems.nix' 's|prefix = "discard=async";|prefix = "discard=asyncMutated";|'
+
 say "----"
 say "passed=$passed failed=$failed"
 [ "$failed" -eq 0 ]
