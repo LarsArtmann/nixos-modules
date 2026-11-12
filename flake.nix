@@ -101,5 +101,21 @@
         in
           treefmtEval.config.build.wrapper
       );
+
+      # The negative mutation harness as a flake app. The harness copies the
+      # git-TRACKED tree, so it must run against a working checkout — invoke
+      # from the repo root (CASES=... and KEEP=1 pass through the env).
+      apps = forAllSystems (system: {
+        negative-tests = {
+          type = "app";
+          program = toString (nixpkgs.legacyPackages.${system}.writeShellScript "negative-tests" ''
+            if [ ! -f "$PWD/tests/negative/run.sh" ]; then
+              echo "negative-tests: run from the repo root (or directly: bash tests/negative/run.sh)" >&2
+              exit 1
+            fi
+            exec bash "$PWD/tests/negative/run.sh" "$@"
+          '');
+        };
+      });
     };
 }
