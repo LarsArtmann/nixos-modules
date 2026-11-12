@@ -1,7 +1,8 @@
 # nixos-modules
 
-LarsArtmann NixOS module collection — reusable pattern modules, eval-time audit
-gates, and the systemd hardening lib extracted from (and consumed by)
+LarsArtmann NixOS module collection — production modules (wifi failover, boot
+mirror, hot-disk tiering + migration), the systemd hardening lib, and the
+mutation-proven contract checks — extracted from (and consumed by)
 [SystemNix](https://github.com/LarsArtmann/SystemNix).
 
 ## Design rules
@@ -63,6 +64,16 @@ option notes.
 ## Development
 
 ```sh
-nix fmt          # treefmt + alejandra
-nix flake check  # formatting gate, module-path introspection, VM tests
+nix fmt          # treefmt: alejandra + deadnix + statix (Nix files)
+nix flake check  # formatting, module introspection, lib + module contracts,
+                 # options.json provenance, VM tests (x86_64)
+nix run .#negative-tests   # mutation harness (repo root; CASES= filter)
 ```
+
+Contributions follow the [Design rules](#design-rules) above; every module
+change lands with its contract check and (where behavior is runtime-visible)
+VM + negative-mutation legs.
+
+## License
+
+[MIT](LICENSE) © Lars Artmann

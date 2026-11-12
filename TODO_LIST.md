@@ -20,7 +20,8 @@
 
 | Task                                                                 | Status        | Impact | Effort | Evidence                                                                                                        |
 | -------------------------------------------------------------------- | ------------- | ------ | ------ | --------------------------------------------------------------------------------------------------------------- |
-| Add in-repo eval tests for the lib's pure helpers                   | 🔴 `TODO`     | High   | 3-4h   | `flake.nix` checks have no lib leg; guards worth pinning: harden lifecycle-throw (`lib/systemd.nix:41-53`), MemoryHigh derivation (`lib/systemd.nix:69-99`), `extractPortLiterals` forms (`lib/default.nix`) — parity with SystemNix is proven at extraction only, nothing re-proves it as the fork evolves |
+| docs-gates adoption: `.docs-gates.json` in-repo + baseline green (Process) | 🔴 `TODO` | Med | 30min | Report §f item 13; `nix run github:Artmann-Technologies/docs-gates -- run .` works — baseline FAILs only on the 2 unharvested §f items (this row + the next) |
+| Re-run docs-health VERIFY after the pareto execution lands → establish post-fix baseline score (Process) | 🔴 `TODO` | Med | 90min | Report §f item 26; re-scores Accuracy/Fitness against the new baseline after T1-T14 |
 
 ## Medium Impact
 

@@ -1,0 +1,5 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Artmann-Technologies/docs-gates/main/schema/docs-gates.schema.json",
+  "skip_gates": [],
+  "gate_timeout_sec": 30
+}

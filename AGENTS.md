@@ -152,7 +152,7 @@ environment override — renaming log lines in `watch.sh` breaks the test.
   (wifi-failover ignores it as `_`); eval-contract tests take
   `{lib, pkgs, module}` (boot-mirror, hot-tier, hot-dir-migrate,
   wifi-failover); the lib contract test takes `{lib, pkgs, collectionLib}`
-  (lib-eval). All 9 wired in flake.nix.
+  (lib-eval). All 10 wired in flake.nix.
 - Unit names with dashes: a literal `after = ["boot-mirror.mount"]` names a
   nonexistent unit (systemd escapes dashes: `boot\x2dmirror.mount`). Use
   `unitConfig.RequiresMountsFor`, which implies Requires=+After= on the real
@@ -163,6 +163,11 @@ environment override — renaming log lines in `watch.sh` breaks the test.
 - CI (`.github/workflows/check.yml`) runs `nix flake check -L` + the aarch64
   eval pass on every push to master and PR; the negative harness stays manual
   (`nix build --impure` cannot run inside flake checks).
+- docs-gates (adopted 2026-11-12, config in `.docs-gates.json`, fleet
+  defaults): `nix run github:Artmann-Technologies/docs-gates -- run .` gates
+  freshness/audit-all/annotate/routing/cadence over the status-report corpus.
+  Run it before archiving or after harvesting §f items; a red freshness gate
+  names the exact unharvested report row.
 - SECURITY.md: vulnerabilities go through GitHub private security advisories,
   never public issues.
 

@@ -15,6 +15,12 @@ runtime behavior, the SystemNix side of every fork.
 
 ## Errata (stale backlog found and corrected during Step 0)
 
+5. **The harness leg count "15 legs" (µ1.6, and T1's row) was a miscount** —
+   execution recount: 16 legs at plan time (bootmirror 5, hottier 5,
+   hotdirmigrate 6). After execution the harness carries 22 cases (17 mutation
+   legs + 5 green controls) across 5 groups including the new `wififailover`
+   and `lib` groups.
+
 1. **TODO_LIST row "wifi-failover negative legs" had stale evidence** — said
    the harness "carries only the bootmirror group"; modules 3+4 added
    `hottier` + `hotdirmigrate` groups at 21:47-22:00. Corrected in place

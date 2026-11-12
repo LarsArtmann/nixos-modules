@@ -23,7 +23,7 @@ fleet monitoring), `rocm`, buildcache helpers, the Pocket ID
 ## Forked-during-migration
 
 SystemNix `lib/default.nix` KEEPS its local copies while its not-yet-migrated
-modules consume them (123 files import `harden` from the SystemNix path);
+modules consume them (109 files import `harden` from the SystemNix path; recount 2026-11-12);
 `lib/filesystems.nix` is forked the same way (SystemNix keeps its own
 `mkFilesystem` copy until its consumers move). The copies are deleted
 helper-by-helper as consumers migrate to the collection module imports; the
