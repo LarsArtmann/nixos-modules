@@ -51,18 +51,11 @@
         in
           {
             formatting = treefmtEval.config.build.check self;
-            # Pure-eval lib contracts: portable, so they run on every system
-            # (the VM/contract checks below stay x86_64-only until un-gated).
+            # Portable checks — pure eval, no VM: run on every system. The
+            # VM checks below stay x86_64-only (runNixOSTest qemu guests).
             lib-eval = import ./tests/lib-eval.nix {
               inherit lib pkgs;
               collectionLib = collectionLib;
-            };
-          }
-          // lib.optionalAttrs (system == "x86_64-linux") {
-            wifi-failover-vm = pkgs.testers.runNixOSTest (import ./tests/wifi-failover.nix {inherit pkgs;});
-            wifi-failover-contract = import ./tests/wifi-failover-contract.nix {
-              inherit lib pkgs;
-              module = ./modules/wifi-failover;
             };
             boot-mirror-contract = import ./tests/boot-mirror.nix {
               inherit lib pkgs;
@@ -76,9 +69,10 @@
               inherit lib pkgs;
               module = ./modules/hot-dir-migrate;
             };
-            hot-tier-journal-vm = pkgs.testers.runNixOSTest (import ./tests/hot-tier-journal.nix {inherit pkgs;});
-            hot-tier-caddy-vm = pkgs.testers.runNixOSTest (import ./tests/hot-tier-caddy.nix {inherit pkgs;});
-            hot-dir-migrate-vm = pkgs.testers.runNixOSTest (import ./tests/hot-dir-migrate.nix {inherit pkgs;});
+            wifi-failover-contract = import ./tests/wifi-failover-contract.nix {
+              inherit lib pkgs;
+              module = ./modules/wifi-failover;
+            };
             module-list = pkgs.runCommand "module-list" {} ''
               # Forces evaluation of every discovered module path and records the
               # public surface; a change here shows up as a check-input diff.
@@ -87,6 +81,12 @@
               } > $out
               cat $out
             '';
+          }
+          // lib.optionalAttrs (system == "x86_64-linux") {
+            wifi-failover-vm = pkgs.testers.runNixOSTest (import ./tests/wifi-failover.nix {inherit pkgs;});
+            hot-tier-journal-vm = pkgs.testers.runNixOSTest (import ./tests/hot-tier-journal.nix {inherit pkgs;});
+            hot-tier-caddy-vm = pkgs.testers.runNixOSTest (import ./tests/hot-tier-caddy.nix {inherit pkgs;});
+            hot-dir-migrate-vm = pkgs.testers.runNixOSTest (import ./tests/hot-dir-migrate.nix {inherit pkgs;});
           }
       );
 
