@@ -58,6 +58,17 @@
               inherit lib pkgs;
               module = ./modules/boot-mirror;
             };
+            hot-tier-contract = import ./tests/hot-tier-contract.nix {
+              inherit lib pkgs;
+              module = ./modules/hot-tier;
+            };
+            hot-dir-migrate-contract = import ./tests/hot-dir-migrate-contract.nix {
+              inherit lib pkgs;
+              module = ./modules/hot-dir-migrate;
+            };
+            hot-tier-journal-vm = pkgs.testers.runNixOSTest (import ./tests/hot-tier-journal.nix {inherit pkgs;});
+            hot-tier-caddy-vm = pkgs.testers.runNixOSTest (import ./tests/hot-tier-caddy.nix {inherit pkgs;});
+            hot-dir-migrate-vm = pkgs.testers.runNixOSTest (import ./tests/hot-dir-migrate.nix {inherit pkgs;});
             module-list = pkgs.runCommand "module-list" {} ''
               # Forces evaluation of every discovered module path and records the
               # public surface; a change here shows up as a check-input diff.

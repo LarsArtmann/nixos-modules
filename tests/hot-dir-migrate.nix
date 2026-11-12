@@ -1,0 +1,308 @@
+# VM test for the hot-dir-migrate engine (ported from SystemNix
+# tests/test-crush-hot-db.nix; drives the collection module with its
+# DEFAULT option values — the SystemNix delegation layer overrides the unit
+# name for fleet compatibility and is proven separately).
+#
+# Four review rounds on the origin module (static-unit enable gap,
+# 226/NAMESPACE ReadWritePaths, nested-discovery glob, ProtectHome
+# empty-/home trap) each caught a defect that only a BOOTING unit can
+# expose — transient systemd-run flag replicas silently differ from the
+# real unit. This test boots the REAL module and exercises:
+#
+#   1. migrate + symlink (top-level, NESTED at depth 3, space-in-name,
+#      projects-root special case) with payload data preserved at the
+#      destination
+#   2. depth cap: <group>/<group>/<repo>/.crush (depth 4) stays put
+#   3. fresh-write skip: a DB written <10 min ago is left for the next run
+#   4. per-project live-writer guard: a comm=crush process holding an fd on
+#      one project's DB skips ONLY that project
+#   5. depth-4 tripwire WARN + dry-run rehearsal
+#   6. idempotent re-run: "0 project(s) relocated", already-migrated
+#      symlinks skipped
+#   7. unit-shape regressions: RequiresMountsFor present (226 class) and
+#      the declared unit path carrying flock (exit-127 phantom-binary
+#      class); timer-pulled static service + enabled timer
+#   8. empty-target auto-heal vs populated-target manual-merge refusal
+#
+# /mnt/hot is a tmpfs stand-in (virtualisation.fileSystems — plain
+# fileSystems silently vanish in VM tests); the module's RequiresMountsFor
+# orders the migrate unit after the mount, exactly as the real hot-disk
+# mount does.
+#
+# The fixture tree is created BEFORE the migrate unit starts (After=
+# ordering): the unit's ReadWritePaths on /home/lars/projects aborts
+# 226/NAMESPACE if the path does not exist at namespace setup — the
+# ordering IS part of the regression. The Persistent timer elapses at BOOT
+# (before the multi-user transaction), so the fixture dependency is
+# expressed on the consumer unit (wants/after: unit-level ordering applies
+# to EVERY start job regardless of trigger).
+{pkgs}: let
+  fixtureSetup = pkgs.writeShellApplication {
+    name = "hot-dir-migrate-fixture";
+    runtimeInputs = [pkgs.coreutils];
+    text = ''
+      projects=/home/lars/projects
+      mkdir -p \
+        "$projects/.crush" \
+        "$projects/repo-a/.crush" \
+        "$projects/archived/repo-b/.crush" \
+        "$projects/spaced repo/.crush" \
+        "$projects/deep/group/repo/.crush" \
+        "$projects/recent/.crush" \
+        "$projects/healempty/.crush" \
+        "$projects/healfull/.crush"
+
+      echo payload-root > "$projects/.crush/crush.db"
+      echo payload-top > "$projects/repo-a/.crush/crush.db"
+      echo payload-wal > "$projects/repo-a/.crush/crush.db-wal"
+      echo payload-nested > "$projects/archived/repo-b/.crush/crush.db"
+      echo payload-spaced > "$projects/spaced repo/.crush/crush.db"
+      echo payload-deep > "$projects/deep/group/repo/.crush/crush.db"
+      echo payload-fresh > "$projects/recent/.crush/crush.db"
+      echo payload-healempty > "$projects/healempty/.crush/crush.db"
+      echo payload-healfull > "$projects/healfull/.crush/crush.db"
+
+      touch -d '@1000000000' \
+        "$projects/.crush/crush.db" \
+        "$projects/repo-a/.crush/crush.db" \
+        "$projects/repo-a/.crush/crush.db-wal" \
+        "$projects/archived/repo-b/.crush/crush.db" \
+        "$projects/spaced repo/.crush/crush.db" \
+        "$projects/deep/group/repo/.crush/crush.db" \
+        "$projects/healempty/.crush/crush.db" \
+        "$projects/healfull/.crush/crush.db"
+
+      # Interrupted-run residue: the migrate run as ROOT creates these
+      # root-owned — an EMPTY target must auto-heal (rmdir + migrate), a
+      # POPULATED one must keep the manual-merge refusal.
+      mkdir -p /mnt/hot/crush/healempty
+      mkdir -p /mnt/hot/crush/healfull
+      echo foreign-payload > /mnt/hot/crush/healfull/keep.db
+    '';
+  };
+  # A real binary whose PROCESS NAME (comm) is `crush`: the liveness guard
+  # matches comm, which the kernel seeds from the BASENAME of the executed
+  # path — a store path's basename is `<hash>-crush`, never `crush` — so
+  # the binary sets its own name via prctl(PR_SET_NAME), and OPENS argv[1]
+  # (a fixture crush.db) so it demonstrably holds an fd under a live
+  # project. coreutils' sleep cannot be copied under another name either:
+  # nixpkgs builds it as a multi-call dispatcher that fails "unknown
+  # program" exit 1 when executed as `crush`.
+  crushFakeBin = pkgs.runCommand "crush" {nativeBuildInputs = [pkgs.stdenv.cc];} ''
+    printf '#include <unistd.h>\n#include <sys/prctl.h>\n#include <fcntl.h>\nint main(int argc,char**argv){prctl(PR_SET_NAME,"crush",0,0,0);if(argc>1){int fd=open(argv[1],O_RDONLY);(void)fd;}for(;;)pause();}\n' > main.c
+    cc -O0 -o $out main.c
+  '';
+in {
+  name = "hot-dir-migrate";
+
+  nodes.machine = {lib, ...}: {
+    imports = [../modules/hot-dir-migrate];
+
+    system.stateVersion = lib.mkDefault "26.11";
+
+    # The module chowns the migrated tree to ownerUser and the fixture
+    # paths assume /home/lars/projects (projectsDir is set below to match).
+    users.users.lars.isNormalUser = true;
+
+    services.hot-dir-migrate = {
+      enable = true;
+      projectsDir = "/home/lars/projects";
+      ownerUser = "lars";
+    };
+
+    # Tmpfs stand-in for the hot-disk mount.
+    virtualisation.fileSystems."/mnt/hot" = {
+      fsType = "tmpfs";
+    };
+
+    systemd.services.hot-dir-migrate-fixture = {
+      description = "hot-dir-migrate VM fixture tree (test-only)";
+      wantedBy = ["multi-user.target"];
+      before = [
+        "hot-dir-migrate.service"
+        "multi-user.target"
+      ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = lib.getExe fixtureSetup;
+      };
+    };
+
+    # Unit-level ordering: the fixture precedes EVERY migrate start job,
+    # including the Persistent timer's boot catch-up (see header).
+    systemd.services.hot-dir-migrate = {
+      wants = ["hot-dir-migrate-fixture.service"];
+      after = ["hot-dir-migrate-fixture.service"];
+    };
+
+    # A process NAMED `crush` holding a fixture crush.db open: the
+    # per-project guard must skip that project and ONLY that project.
+    systemd.services.crush-fake-session = {
+      description = "Fake crush session (test-only live-writer guard)";
+      serviceConfig = {
+        Type = "exec";
+        ExecStart = "${crushFakeBin} /home/lars/projects/late/.crush/crush.db";
+      };
+    };
+  };
+
+  testScript = ''
+    machine.start()
+    machine.wait_for_unit("multi-user.target")
+    # The unit is timer-pulled (OnBootSec, no multi-user gating): a fresh VM
+    # carries no timer stamp, so the first fire is 2 min after timers.target
+    # — wait_for_unit would sit on an inactive unit. Start it explicitly:
+    # the start job honors the same unit-level after/wants fixture
+    # ordering, and the boot-trigger coverage lives in the is-enabled shape
+    # assertions below (the run itself is identical regardless of trigger).
+    machine.succeed("systemctl start hot-dir-migrate.service")
+    machine.wait_for_unit("hot-dir-migrate.service")
+
+    # ---- Regressions 1: enablement shape (timer-pulled, never boot-gated) ----
+    machine.succeed(
+        'test "$(systemctl is-enabled hot-dir-migrate.service)" != enabled'
+    )
+    machine.succeed(
+        'test "$(systemctl is-enabled hot-dir-migrate.timer)" = enabled'
+    )
+
+    # ---- Regression 2: unit shape (226 + phantom-binary classes) ----
+    unit = machine.succeed("systemctl cat hot-dir-migrate.service")
+    assert "RequiresMountsFor" in unit, "RequiresMountsFor missing from unit"
+    assert "util-linux" in unit, "unit path missing flock (util-linux)"
+    assert (
+        "ProtectHome=read-only" in unit
+    ), "ProtectHome must be read-only: harden{}'s `true` default maps to systemd yes = inaccessible-and-EMPTY /home, so every find ENOENTs (round-4 trap)"
+
+    # ---- Boot-run outcome: exactly the 5 migratable fixtures relocated ----
+    # (4 original + healempty via the empty-target auto-heal; healfull is
+    # correctly refused — populated target, manual merge.)
+    boot_log = machine.succeed(
+        "journalctl -b -u hot-dir-migrate.service --output cat"
+    )
+    assert "5 project(s) relocated" in boot_log, boot_log
+
+    # ---- Depth-4 tripwire: the deep fixture surfaces a WARN ----
+    assert "deeper than discovery depth 3" in boot_log, boot_log
+    assert "deep/group/repo/.crush" in boot_log, boot_log
+
+    # ---- Migration + symlink + data preserved ----
+    machine.succeed("test -L /home/lars/projects/repo-a/.crush")
+    machine.succeed(
+        'test "$(readlink /home/lars/projects/repo-a/.crush)" = /mnt/hot/crush/repo-a'
+    )
+    machine.succeed("grep -q payload-top /mnt/hot/crush/repo-a/crush.db")
+    machine.succeed("grep -q payload-wal /mnt/hot/crush/repo-a/crush.db-wal")
+
+    # projects-root special case: $projects/.crush → /mnt/hot/crush/projects-root
+    machine.succeed("test -L /home/lars/projects/.crush")
+    machine.succeed(
+        'test "$(readlink /home/lars/projects/.crush)" = /mnt/hot/crush/projects-root'
+    )
+    machine.succeed("grep -q payload-root /mnt/hot/crush/projects-root/crush.db")
+
+    # Nested checkout: parent hierarchy auto-created under the destination.
+    machine.succeed("test -L /home/lars/projects/archived/repo-b/.crush")
+    machine.succeed("grep -q payload-nested /mnt/hot/crush/archived/repo-b/crush.db")
+
+    # Space-in-name checkout.
+    machine.succeed("test -L '/home/lars/projects/spaced repo/.crush'")
+    machine.succeed("grep -q payload-spaced '/mnt/hot/crush/spaced repo/crush.db'")
+
+    # ---- Empty-target auto-heal ----
+    assert "healed empty target /mnt/hot/crush/healempty" in boot_log, boot_log
+    machine.succeed("test -L /home/lars/projects/healempty/.crush")
+    machine.succeed(
+        'test "$(readlink /home/lars/projects/healempty/.crush)" = /mnt/hot/crush/healempty'
+    )
+    machine.succeed("grep -q payload-healempty /mnt/hot/crush/healempty/crush.db")
+    # Populated foreign target: refusal preserved, source untouched.
+    assert (
+        "skip healfull: target /mnt/hot/crush/healfull already exists (manual merge needed)"
+        in boot_log
+    ), boot_log
+    machine.fail("test -L /home/lars/projects/healfull/.crush")
+    machine.succeed("test -f /home/lars/projects/healfull/.crush/crush.db")
+    machine.succeed("grep -q foreign-payload /mnt/hot/crush/healfull/keep.db")
+
+    # ---- Left in place: depth cap + fresh-write skip ----
+    machine.fail("test -L /home/lars/projects/deep/group/repo/.crush")
+    machine.succeed("test -f /home/lars/projects/deep/group/repo/.crush/crush.db")
+    machine.fail("test -L /home/lars/projects/recent/.crush")
+    machine.succeed("test -f /home/lars/projects/recent/.crush/crush.db")
+
+    # ---- Per-project live-writer guard, with BOTH controls ----
+    # `late` is held open by a comm=crush process; `late2` is identical but
+    # unheld. The run must migrate late2 while skipping exactly `late` —
+    # the old blanket skip would have left BOTH on the OS disk.
+    machine.succeed(
+        "mkdir -p /home/lars/projects/late/.crush /home/lars/projects/late2/.crush"
+        " && echo payload-late > /home/lars/projects/late/.crush/crush.db"
+        " && echo payload-late2 > /home/lars/projects/late2/.crush/crush.db"
+        " && touch -d '@1000000000' /home/lars/projects/late/.crush/crush.db"
+        " /home/lars/projects/late2/.crush/crush.db"
+    )
+    machine.succeed("systemctl start crush-fake-session.service")
+    machine.succeed("pgrep -x crush")  # guard must be live BEFORE the restart
+    # Control-of-the-control: the guard's ONLY detection input is an fd (or
+    # cwd) under the project's .crush — assert the fake session actually
+    # holds one before restarting. A fake that silently holds no fd turns
+    # any guard regression into a mystery.
+    fake_pid = machine.succeed("pgrep -x crush | head -1").strip()
+    fd_dump = machine.succeed(f"ls -l /proc/{fake_pid}/fd")
+    assert "late/.crush/crush.db" in fd_dump, (
+        f"fake crush session (pid {fake_pid}) holds no fd on late/.crush/crush.db — "
+        f"the live-writer guard is blind by construction:\n{fd_dump}"
+    )
+    machine.succeed("systemctl restart hot-dir-migrate.service")
+    guard_log = machine.succeed(
+        "journalctl -b -u hot-dir-migrate.service --output cat"
+    )
+    assert "skip late: live crush session holds it open" in guard_log, guard_log
+    machine.fail("test -L /home/lars/projects/late/.crush")
+    machine.succeed("test -f /home/lars/projects/late/.crush/crush.db")
+    machine.succeed("test -L /home/lars/projects/late2/.crush")
+    machine.succeed("grep -q payload-late2 /mnt/hot/crush/late2/crush.db")
+
+    # ---- Dry-run rehearsal: reports the migration, never performs it ----
+    machine.succeed(
+        "mkdir -p /home/lars/projects/dryproj/.crush"
+        " && echo payload-dry > /home/lars/projects/dryproj/.crush/crush.db"
+        " && touch -d '@1000000000' /home/lars/projects/dryproj/.crush/crush.db"
+        " && mkdir -p /home/lars/projects/dryheal/.crush /mnt/hot/crush/dryheal"
+        " && echo payload-dryheal > /home/lars/projects/dryheal/.crush/crush.db"
+        " && touch -d '@1000000000' /home/lars/projects/dryheal/.crush/crush.db"
+    )
+    machine.succeed(
+        "systemctl set-environment HOT_DIR_MIGRATE_DRY_RUN=1"
+        " && systemctl restart hot-dir-migrate.service"
+    )
+    dry_log = machine.succeed(
+        "journalctl -b -u hot-dir-migrate.service --output cat"
+    )
+    assert "dry-run: would migrate dryproj" in dry_log, dry_log
+    assert "dry-run: would heal empty target /mnt/hot/crush/dryheal" in dry_log, dry_log
+    assert "would relocate 2 project(s)" in dry_log, dry_log
+    machine.fail("test -L /home/lars/projects/dryproj/.crush")
+    machine.fail("test -L /home/lars/projects/dryheal/.crush")
+    machine.succeed("test -d /mnt/hot/crush/dryheal")
+    machine.succeed("systemctl unset-environment HOT_DIR_MIGRATE_DRY_RUN")
+
+    # Guard gone → the next run converges the pending projects.
+    machine.succeed("systemctl stop crush-fake-session.service")
+    machine.succeed("systemctl restart hot-dir-migrate.service")
+    machine.succeed("test -L /home/lars/projects/late/.crush")
+    machine.succeed("grep -q payload-late /mnt/hot/crush/late/crush.db")
+    machine.succeed("test -L /home/lars/projects/dryproj/.crush")
+    machine.succeed("grep -q payload-dry /mnt/hot/crush/dryproj/crush.db")
+    machine.succeed("test -L /home/lars/projects/dryheal/.crush")
+    machine.succeed("grep -q payload-dryheal /mnt/hot/crush/dryheal/crush.db")
+
+    # ---- Idempotent re-run: symlinks skipped, 0 relocated ----
+    machine.succeed("systemctl restart hot-dir-migrate.service")
+    rerun_log = machine.succeed(
+        "journalctl -b -u hot-dir-migrate.service --output cat | tail -n 2"
+    )
+    assert "0 project(s) relocated" in rerun_log, rerun_log
+  '';
+}
