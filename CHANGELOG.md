@@ -4,6 +4,20 @@ All notable changes to the collection are documented here. The format follows [K
 
 ---
 
+## [0.1.0] - 2026-11-12
+
+First tagged release: the collection's trust floor. 4 modules (wifi-failover,
+boot-mirror, hot-tier, hot-dir-migrate) extracted from SystemNix with
+byte-parity proven at extraction; the portable systemd-hardening lib; a
+3-layer test net (12 flake checks on x86_64 + 8 pure checks evaluated on
+aarch64, incl. 53 lib contracts and options.json provenance; 4 VM tests;
+22-case negative mutation harness across 5 groups); CI; and the living-doc
+set (FEATURES/TODO/ROADMAP/DOMAIN_LANGUAGE) under docs-gates. Verified green
+at tag time: `nix flake check`, `nix flake check --all-systems --no-build`,
+`bash tests/negative/run.sh` 22/22.
+
+### Added in this release
+
 - **harness UX, fresh VM re-proofs, docs-gates adoption, count audit (2026-11-12)** — `nix run .#negative-tests` flake app (repo-root invocation, CASES/KEEP pass through); all 4 VM checks re-proved with `nix build --rebuild` (deterministic re-run, all green) and wifi-failover-vm fully re-built fresh after the `watch.sh` edit. `watch.sh` GW-source comment corrected (SystemNix-era `config.networking.local.gateway`/`wifi-failover.nix` → this repo's `services.wifi-failover.gateway`/`networking.defaultGateway` in `modules/wifi-failover/default.nix`) — comment-only divergence from the SystemNix copy, noted for the parity diff. docs-gates adopted: `.docs-gates.json` (fleet defaults) + baseline ALL GREEN after harvesting the 21:40 report's 2 open §f items; invocation documented in AGENTS. Count audit fixed 4 drifts (AGENTS test-file count 9→10, lib/README harden consumers 123→109-dated, FEATURES leg counts normalized to mutation-leg wording, plan erratum #5: 15-leg miscount); archived-report gates re-run clean — the dprint removal also dissolved the marker-stability risk class (no md formatter exists to mangle strikethroughs).
 
 - **tooling hygiene (2026-11-12)** — `dprint.json` removed: its plugins are remote-fetched WASM at runtime and cannot run inside hermetic flake checks; Markdown/JSON/YAML are deliberately formatter-ungated (documented in AGENTS). treefmt grows deadnix + statix (5 idiomatic `inherit` fixes applied across flake.nix + the contract tests). `.gitignore` buildflow block replaced with a curated list (no buildflow config exists in this repo — the block was fleet-template residue). Flake description reworded to the shipped surface (the old text advertised eval-time audit gates that are still ROADMAP ⚪).
