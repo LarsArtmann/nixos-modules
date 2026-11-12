@@ -1,5 +1,5 @@
 {
-  description = "LarsArtmann NixOS module collection — pattern modules, eval-time audit gates, systemd hardening lib";
+  description = "LarsArtmann NixOS module collection — production modules (wifi failover, boot mirror, hot-disk tiering + migration), systemd hardening lib";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
