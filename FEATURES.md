@@ -36,27 +36,37 @@ not?
 
 ## Collection lib (`lib` — systemd hardening spine)
 
-Evidence basis for this section: extracted from SystemNix with byte-parity
-proven at extraction (see CHANGELOG); most helpers additionally run in the
-SystemNix fleet. Helpers without a dedicated in-repo test say so in Notes.
+Evidence basis for this section — three evidence classes, mechanically
+applied (status is a pure function of class):
+
+- **Class A** — exercised by an in-repo check (VM test, eval-contract,
+  negative mutation leg, lib eval test).
+- **Class B** — extraction byte-parity proven at extraction time (CHANGELOG)
+  AND at least one SystemNix fleet consumer file (verified by grep, 2026-11-12:
+every helper below has one — `serviceTypes` 11, `mkFilesystem` 10,
+`mkStateDir` 24, `ioTier` 63, …).
+- **Class C** — parity only, no consumer, no in-repo test.
+
+A → 🟢, B → 🟢 (Notes say when no dedicated in-repo test exists), C → 🟡.
+A known behavioral limitation forces 🟡 regardless of class.
 
 | Feature                                                            | Status                | Evidence                                  | Notes                                                                 |
 | ------------------------------------------------------------------ | --------------------- | ----------------------------------------- | --------------------------------------------------------------------- |
 | Hardening fragment (`harden` / `hardenUser`)                       | 🟢 `FULLY_FUNCTIONAL` | `lib/systemd.nix`; 3 of 4 modules use it (wifi-failover, boot-mirror, hot-dir-migrate) | Lifecycle-key guard throws at eval; MemoryHigh derives from MemoryMax  |
 | Service defaults family (`serviceDefaults*`, `serviceOneshotDefaults*`) | 🟢 `FULLY_FUNCTIONAL` | `lib/systemd/service-defaults.nix`; used by the same 3 modules | `*User` variants drop mkForce for Home Manager; no dedicated in-repo test for the `*User` variants |
 | Failure routing hooks (`onFailure` / `onFailureP0`)                 | 🟢 `FULLY_FUNCTIONAL` | `lib/systemd/service-defaults.nix:94-104` | Reference `notify-failure@%n.service` templates — consumer must provide them |
-| systemd option helpers (`serviceTypes`)                             | 🟡 `PARTIALLY_FUNCTIONAL` | `lib/types.nix`                        | No in-repo consumer or test; carried for consumer modules             |
+| systemd option helpers (`serviceTypes`)                             | 🟢 `FULLY_FUNCTIONAL` | `lib/types.nix`; Class B — 11 SystemNix consumer files | Carried for consumer modules; no in-repo consumer or dedicated test     |
 | Port guard (`mkPortGuard`, berth pattern)                           | 🟢 `FULLY_FUNCTIONAL` | `lib/port-guard.nix`                      | Release-verified port handoff; PID start-time identity; no in-repo test |
 | Pool directory unit (`mkPoolDirUnit`)                               | 🟢 `FULLY_FUNCTIONAL` | `lib/default.nix` (`mkPoolDirUnit`)       | The only sanctioned creator of dirs under removable mounts; no in-repo test |
 | SQLite backup pair (`mkSqliteBackupUnit`)                           | 🟢 `FULLY_FUNCTIONAL` | `lib/default.nix` (`mkSqliteBackupUnit`)  | WAL-safe superset script; no in-repo test                              |
 | Prometheus textfile collector pair (`mkMetricTextfileCollector`)    | 🟢 `FULLY_FUNCTIONAL` | `lib/default.nix` (`mkMetricTextfileCollector`) | Fail-closed atomicity; omit-on-error rule is caller-side; no in-repo test |
 | Desktop notify service (`mkDesktopNotifyService`)                   | 🟢 `FULLY_FUNCTIONAL` | `lib/default.nix` (`mkDesktopNotifyService`) | Timer + service pair; no in-repo test                                  |
-| Audit scan surface (`unitExecText` / `extractPortLiterals`)         | 🟡 `PARTIALLY_FUNCTIONAL` | `lib/default.nix` (`unitExecText`, `extractPortLiterals`) | Known limitation: `word:NNN` tokens are lexically indistinguishable from `host:port` and DO extract; per-audit `allowPorts` is the sanctioned escape |
+| Audit scan surface (`unitExecText` / `extractPortLiterals`)         | 🟡 `PARTIALLY_FUNCTIONAL` | `lib/default.nix` (`unitExecText`, `extractPortLiterals`); Class B (3 SystemNix consumers) — 🟡 is for the limitation, not the evidence | Known limitation: `word:NNN` tokens are lexically indistinguishable from `host:port` and DO extract; per-audit `allowPorts` is the sanctioned escape |
 | Secret presence check (`mkSecretCheck`)                             | 🟢 `FULLY_FUNCTIONAL` | `lib/default.nix` (`mkSecretCheck`)       | No in-repo test                                                        |
 | State-dir tmpfiles line (`mkStateDir`)                              | 🟢 `FULLY_FUNCTIONAL` | `lib/default.nix` (`mkStateDir`)          | Trivial generator                                                      |
 | I/O priority tiers (`ioTier`)                                       | 🟢 `FULLY_FUNCTIONAL` | `lib/default.nix` (`ioTier`); contract-pinned by the boot-mirror test (`IOSchedulingPriority = 6`) | Fragments merge via `mkMerge` alongside `harden {}`       |
 | Memory-limited command wrapper (`wrapWithMemoryLimit`)              | 🟢 `FULLY_FUNCTIONAL` | `lib/default.nix` (`wrapWithMemoryLimit`) | For devShells/system packages; NOT for Nix build sandboxes; no in-repo test |
-| Filesystem guard (`mkFilesystem`)                                  | 🟡 `PARTIALLY_FUNCTIONAL` | `lib/filesystems.nix`; consumed by `modules/hot-tier` (fs-options guard travels with its contract check) | Throws on cross-filesystem option contamination (e.g. `discard=async` on ext4); no dedicated in-repo test of the throw |
+| Filesystem guard (`mkFilesystem`)                                  | 🟢 `FULLY_FUNCTIONAL` | `lib/filesystems.nix`; Class B — 10 SystemNix consumer files; consumed in-repo by `modules/hot-tier` (guard travels with its contract check) | Throws on cross-filesystem option contamination (e.g. `discard=async` on ext4); no dedicated in-repo test of the throw |
 
 ## Collection infrastructure (flake)
 
