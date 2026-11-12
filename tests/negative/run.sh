@@ -155,6 +155,16 @@ run_case hotdirmigrate cap-stripped hot-dir-migrate-contract fail "CAP_SYS_PTRAC
 run_case hotdirmigrate flock-dropped hot-dir-migrate-contract fail 'must carry util-linux' \
   'modules/hot-dir-migrate/default.nix' 's|^          pkgs.util-linux$|          # util-linux stripped|'
 
+# ── wififailover: the gateway-resolution + dual-wan conflict classes ──
+# The mutations build the VIOLATING CONFIG in the contract fixture (the
+# module's assertions must throw); the check itself is wifi-failover-contract.
+run_case wififailover green-control wifi-failover-contract pass - \
+  'tests/wifi-failover-contract.nix' '-'
+run_case wififailover gateway-null wifi-failover-contract fail 'needs a gateway' \
+  'tests/wifi-failover-contract.nix' 's|gateway = "192.168.9.1";|gateway = null;|'
+run_case wififailover dual-wan-conflict wifi-failover-contract fail 'conflicts with services.dual-wan' \
+  'tests/wifi-failover-contract.nix' 's|dualWanEnabled = false;|dualWanEnabled = true;|'
+
 say "----"
 say "passed=$passed failed=$failed"
 [ "$failed" -eq 0 ]

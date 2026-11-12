@@ -54,6 +54,10 @@
           }
           // lib.optionalAttrs (system == "x86_64-linux") {
             wifi-failover-vm = pkgs.testers.runNixOSTest (import ./tests/wifi-failover.nix {inherit pkgs;});
+            wifi-failover-contract = import ./tests/wifi-failover-contract.nix {
+              inherit lib pkgs;
+              module = ./modules/wifi-failover;
+            };
             boot-mirror-contract = import ./tests/boot-mirror.nix {
               inherit lib pkgs;
               module = ./modules/boot-mirror;

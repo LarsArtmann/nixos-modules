@@ -142,7 +142,7 @@ environment override — renaming log lines in `watch.sh` breaks the test.
   (wifi-failover ignores it as `_`) — wifi-failover, hot-tier-journal,
   hot-tier-caddy, hot-dir-migrate; eval-contract tests take
   `{lib, pkgs, module}` — boot-mirror, hot-tier-contract,
-  hot-dir-migrate-contract. All 7 wired in flake.nix.
+  hot-dir-migrate-contract, wifi-failover-contract. All 8 wired in flake.nix.
 - Unit names with dashes: a literal `after = ["boot-mirror.mount"]` names a
   nonexistent unit (systemd escapes dashes: `boot\x2dmirror.mount`). Use
   `unitConfig.RequiresMountsFor`, which implies Requires=+After= on the real
