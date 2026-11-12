@@ -158,6 +158,9 @@ environment override — renaming log lines in `watch.sh` breaks the test.
 - `harden {}` defaults an empty `CapabilityBoundingSet`; anything needing
   caps (e.g. `chown`) must pass them explicitly.
 - CHANGELOG.md follows Keep a Changelog — add an entry for notable changes.
+- CI (`.github/workflows/check.yml`) runs `nix flake check -L` + the aarch64
+  eval pass on every push to master and PR; the negative harness stays manual
+  (`nix build --impure` cannot run inside flake checks).
 - SECURITY.md: vulnerabilities go through GitHub private security advisories,
   never public issues.
 

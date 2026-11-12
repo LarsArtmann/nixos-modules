@@ -32,8 +32,9 @@ Please do **not** open public issues for security problems. Report privately ins
 ## Security Practices
 
 - All changes are code-reviewed before merge
-- Automated checks run through `nix flake check` (formatting gate, module
-  introspection, eval contracts, VM tests) — no hosted CI pipeline exists
+- Automated checks run in CI via `nix flake check` (`.github/workflows/check.yml`:
+  formatting gate, module introspection, eval contracts, VM tests, aarch64
+  eval portability)
 - Dependencies are kept up to date
 
 ---

@@ -1,0 +1,36 @@
+# CI for the collection: full `nix flake check` (x86_64: 4 VM tests + all
+# pure-eval checks) plus an aarch64 eval-portability pass. The VM tests need
+# KVM on the runner — public GitHub ubuntu runners expose /dev/kvm since
+# 2024 but with root-only perms, hence the chmod step.
+name: check
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  flake-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: DeterminateSystems/nix-installer-action@v17
+
+      - name: Enable KVM for the VM tests
+        run: |
+          if [ -e /dev/kvm ]; then
+            sudo chmod 666 /dev/kvm
+          else
+            echo "::warning::no /dev/kvm on this runner — VM tests will fall back to qemu TCG (slow)"
+          fi
+
+      - name: aarch64 eval portability (pure checks, no build)
+        run: nix flake check --all-systems --no-build
+
+      - name: Full flake check (VM tests included)
+        run: nix flake check -L
