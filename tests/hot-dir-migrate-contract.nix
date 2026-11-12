@@ -70,7 +70,7 @@
                             wantedBy = svc.wantedBy;
                             timerOnBootSec = timer.timerConfig.OnBootSec;
                             timerPersistent = timer.timerConfig.Persistent or null;
-                          })))))))))));
+                          }))))))))))));
 in
   pkgs.runCommand "hot-dir-migrate-contract" {
     # Force the full eval (assertions included) at build-input time.

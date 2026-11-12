@@ -153,23 +153,35 @@ in {
     };
   };
 
-  config = mkIf cfg.enable (mkMerge (
-    map (m: {
-      fileSystems.${m.mountPoint} = mkFilesystem {
-        inherit (m) device fsType;
-        options = ["subvol=${m.subvol}"] ++ m.mountOptions;
-      };
-      # Existence guarantee for the (shadow) mount-point dir — tmpfiles runs
-      # in sysinit; on a healthy boot the mount shadows it, on a degraded
-      # boot the service falls back INTO it.
-      systemd.tmpfiles.rules = [
-        "d ${m.mountPoint} ${m.tmpfilesMode} ${m.tmpfilesUser} ${m.tmpfilesGroup} -"
-      ];
-    }) mounts
-    ++ lib.concatMap
+  # All dynamic structure lives INSIDE static top-level keys: config keys
+  # computed from option values (fileSystems.${m.mountPoint}) at the
+  # top level would force cfg.mounts during the module system's key
+  # distribution — an infinite recursion (the dynamic-key-from-cfg trap).
+  # Static keys + mkIf inside the value is the canonical shape.
+  config = {
+    fileSystems = mkIf cfg.enable (mkMerge (
+      map (m: {
+        ${m.mountPoint} = mkFilesystem {
+          inherit (m) device fsType;
+          options = ["subvol=${m.subvol}"] ++ m.mountOptions;
+        };
+      }) mounts
+    ));
+
+    # Existence guarantee for the (shadow) mount-point dir — tmpfiles runs
+    # in sysinit; on a healthy boot the mount shadows it, on a degraded
+    # boot the service falls back INTO it.
+    systemd.tmpfiles.rules = mkIf cfg.enable (
+      map
+      (m: "d ${m.mountPoint} ${m.tmpfilesMode} ${m.tmpfilesUser} ${m.tmpfilesGroup} -")
+      mounts
+    );
+
+    systemd.services = mkIf cfg.enable (mkMerge (
+      lib.concatMap
       (m:
         lib.mapAttrsToList (svc: w: {
-          systemd.services.${svc} = {
+          ${svc} = {
             after = [(mountUnit m.mountPoint)];
             wants = [(mountUnit m.mountPoint)];
             serviceConfig =
@@ -187,5 +199,6 @@ in {
         })
         m.services)
       mounts
-  ));
+    ));
+  };
 }

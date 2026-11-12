@@ -75,7 +75,7 @@
             "hot-tier contract: dropLogsDirectory must neutralize the upstream LogsDirectory (implicit RequiresMountsFor class)"
             (lib.throwIfNot (caddy.serviceConfig.RequiresMountsFor or null == null)
               "hot-tier contract: the caddy unit must carry NO RequiresMountsFor on the mount (wants-not-requires)"
-              (lib.throwIfNot (builtins.length (caddy.serviceConfig.ExecStartPre or []) == 1 && builtins.match "\+.*/caddy-logdir-own" (builtins.head caddy.serviceConfig.ExecStartPre) != null)
+              (lib.throwIfNot (builtins.length (caddy.serviceConfig.ExecStartPre or []) == 1 && lib.hasPrefix "+" (builtins.head caddy.serviceConfig.ExecStartPre) && builtins.match ".*/caddy-logdir-own" (builtins.head caddy.serviceConfig.ExecStartPre) != null)
                 "hot-tier contract: the `+`-privileged ownership-heal chown ExecStartPre must be present"
                 (lib.throwIfNot (builtins.any (rule: lib.hasPrefix "d /var/log/journal 02755 root systemd-journal -" rule) eval.config.systemd.tmpfiles.rules)
                   "hot-tier contract: journal shadow-dir tmpfiles rule missing"
