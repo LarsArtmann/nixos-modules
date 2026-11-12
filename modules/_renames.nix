@@ -6,7 +6,6 @@
 # migrating; keep entries forever (nixpkgs rename.nix still carries 2023
 # removals). Caveats: renames do not work across types.raw; the target option
 # must already be declared.
-{ ... }:
-{
-  imports = [ ];
+{...}: {
+  imports = [];
 }

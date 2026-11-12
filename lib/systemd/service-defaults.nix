@@ -42,23 +42,24 @@
 # - RestrictAddressFamilies: service-specific socket needs (only dnsblockd sets it)
 # - UMask: application-specific file permission model
 # - PrivateDevices: audio/video/DVB services need /dev device access
-lib:
-let
-  mkDefaults =
-    useMkForce: defaultRestart:
-    {
-      Restart ? defaultRestart,
-      RestartSec ? "5s",
-    }:
-    {
-      Restart = if useMkForce then lib.mkForce Restart else Restart;
-      RestartSec = if useMkForce then lib.mkForce RestartSec else RestartSec;
-    };
+lib: let
+  mkDefaults = useMkForce: defaultRestart: {
+    Restart ? defaultRestart,
+    RestartSec ? "5s",
+  }: {
+    Restart =
+      if useMkForce
+      then lib.mkForce Restart
+      else Restart;
+    RestartSec =
+      if useMkForce
+      then lib.mkForce RestartSec
+      else RestartSec;
+  };
 
   toastOnFailure = "notify-failure@%n.service";
   discordOnFailure = "notify-failure-p0@%n.service";
-in
-{
+in {
   # System services (valid with mkForce)
   serviceDefaults = mkDefaults true "always";
 
@@ -78,21 +79,19 @@ in
   # their own value and win the merge; the 5min floor only catches units
   # that never stated a need. Enforced repo-wide by systemd-shape-audit
   # class 7 for boot-blocking (multi-user/graphical) oneshots.
-  serviceOneshotDefaults =
-    args:
+  serviceOneshotDefaults = args:
     (mkDefaults true "no" args)
     // {
       TimeoutStartSec = lib.mkDefault "5min";
     };
-  serviceOneshotDefaultsUser =
-    args:
+  serviceOneshotDefaultsUser = args:
     (mkDefaults false "no" args)
     // {
       TimeoutStartSec = lib.mkDefault "5min";
     };
 
   # onFailure handler — route service failures to the notify-failure template
-  onFailure = [ toastOnFailure ];
+  onFailure = [toastOnFailure];
 
   # P0 units additionally page the Discord webhook (notify-failure-p0@,
   # platforms/nixos/system/scheduled-tasks.nix) — DIRECTLY, not via gatus,

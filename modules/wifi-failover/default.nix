@@ -22,11 +22,11 @@
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.services.wifi-failover;
   inherit (lib) mkEnableOption mkOption types;
-  inherit (import ../../lib lib)
+  inherit
+    (import ../../lib lib)
     harden
     serviceDefaults
     onFailure
@@ -35,14 +35,13 @@ let
   # Gateway resolution order: explicit option → networking.defaultGateway
   # (string or { address = ...; } form) → null (assertion fails at eval).
   resolvedGateway =
-    if cfg.gateway != null then
-      cfg.gateway
-    else if config.networking.defaultGateway == null then
-      null
-    else if builtins.isString config.networking.defaultGateway then
-      config.networking.defaultGateway
-    else
-      config.networking.defaultGateway.address or null;
+    if cfg.gateway != null
+    then cfg.gateway
+    else if config.networking.defaultGateway == null
+    then null
+    else if builtins.isString config.networking.defaultGateway
+    then config.networking.defaultGateway
+    else config.networking.defaultGateway.address or null;
 
   primaryDevice = "sys-subsystem-net-devices-${cfg.ethernetInterface}.device";
 
@@ -55,8 +54,7 @@ let
     ];
     text = builtins.readFile ./watch.sh;
   };
-in
-{
+in {
   options.services.wifi-failover = {
     enable = mkEnableOption "carrier-based standby failover from static ethernet to NetworkManager WiFi";
 
@@ -129,7 +127,7 @@ in
 
     systemd.services.wifi-failover = {
       description = "WiFi standby failover — carrier-based ${cfg.ethernetInterface} default-route guard";
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = ["multi-user.target"];
       after = [
         primaryDevice
         "network.target"
@@ -148,7 +146,9 @@ in
             "ENO1_IF=${cfg.ethernetInterface}"
             "FALLBACK_IF=${cfg.fallbackInterface}"
             "GW=${
-              if resolvedGateway == null then "<unset: services.wifi-failover.gateway or networking.defaultGateway>" else resolvedGateway
+              if resolvedGateway == null
+              then "<unset: services.wifi-failover.gateway or networking.defaultGateway>"
+              else resolvedGateway
             }"
             "POLL_INTERVAL=${toString cfg.pollIntervalSeconds}"
           ];
@@ -160,7 +160,7 @@ in
           NoNewPrivileges = false;
           MemoryMax = "64M";
         })
-        (serviceDefaults { })
+        (serviceDefaults {})
       ];
     };
   };

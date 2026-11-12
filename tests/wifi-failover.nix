@@ -20,26 +20,23 @@
 #   4. Cable back (peer up): daemon re-adds the metric-0 primary.
 #   5. Unit survives everything: still active, journal carries FAILOVER and
 #      RESTORE markers.
-{ pkgs }:
-{
+_: {
   name = "wifi-failover";
 
-  nodes.machine =
-    { lib, ... }:
-    {
-      imports = [ ../modules/wifi-failover ];
+  nodes.machine = {lib, ...}: {
+    imports = [../modules/wifi-failover];
 
-      services.wifi-failover = {
-        enable = true;
-        ethernetInterface = "ethfail";
-        fallbackInterface = "wlanfail";
-        gateway = "10.99.0.1";
-        pollIntervalSeconds = 1;
-      };
-      # Poll-level debug lines into the journal — the test asserts on them.
-      systemd.services.wifi-failover.environment.DEBUG_POLL = "1";
-      system.stateVersion = lib.mkDefault "26.11";
+    services.wifi-failover = {
+      enable = true;
+      ethernetInterface = "ethfail";
+      fallbackInterface = "wlanfail";
+      gateway = "10.99.0.1";
+      pollIntervalSeconds = 1;
     };
+    # Poll-level debug lines into the journal — the test asserts on them.
+    systemd.services.wifi-failover.environment.DEBUG_POLL = "1";
+    system.stateVersion = lib.mkDefault "26.11";
+  };
 
   testScript = ''
     start_all()

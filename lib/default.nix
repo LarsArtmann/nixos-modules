@@ -3,10 +3,10 @@
 # ONLY. Fleet-bound helpers (mkOidcGate, mkDnsGate, ports registry, gatus
 # helpers, rocm, filesystems, buildcache) stay SystemNix-side: see
 # lib/README.md for the split contract and the kill path.
-lib:
-let
-  harden = import ./systemd.nix { inherit lib; };
-  inherit (import ./systemd/service-defaults.nix lib)
+lib: let
+  harden = import ./systemd.nix {inherit lib;};
+  inherit
+    (import ./systemd/service-defaults.nix lib)
     serviceDefaults
     serviceDefaultsUser
     serviceOneshotDefaults
@@ -14,10 +14,9 @@ let
     onFailure
     onFailureP0
     ;
-in
-{
+in {
   inherit harden;
-  hardenUser = args: harden (args // { mode = "user"; });
+  hardenUser = args: harden (args // {mode = "user";});
   inherit
     serviceDefaults
     serviceDefaultsUser
@@ -32,9 +31,7 @@ in
   # berth pattern; see ./port-guard.nix for the full contract).
   mkPortGuard = import ./port-guard.nix lib;
 
-  mkStateDir =
-    path: mode: user: group:
-    "d ${path} ${mode} ${user} ${group} -";
+  mkStateDir = path: mode: user: group: "d ${path} ${mode} ${user} ${group} -";
 
   # mkPoolDirUnit: the ONLY sanctioned creator of a directory that lives
   # under a removable mount.
@@ -52,47 +49,45 @@ in
   #     bounding set strips it); CAP_FOWNER covers the follow-up chmod on the
   #     then-foreign-owned dir; CAP_DAC_OVERRIDE covers traversal. Owner
   #     omitted → dir stays root-owned, no caps needed.
-  mkPoolDirUnit =
-    {
-      description,
-      directory,
-      owner ? null,
-      group ? owner,
-      mode ? "0755",
-      mountRoot ? "/mnt/pool",
-      memoryMax ? "128M",
-    }:
-    {
-      inherit description;
-      wantedBy = [ "multi-user.target" ];
-      unitConfig.RequiresMountsFor = [ mountRoot ];
-      serviceConfig = lib.mkMerge [
+  mkPoolDirUnit = {
+    description,
+    directory,
+    owner ? null,
+    group ? owner,
+    mode ? "0755",
+    mountRoot ? "/mnt/pool",
+    memoryMax ? "128M",
+  }: {
+    inherit description;
+    wantedBy = ["multi-user.target"];
+    unitConfig.RequiresMountsFor = [mountRoot];
+    serviceConfig = lib.mkMerge [
+      {
+        Type = "oneshot";
+        User = "root";
+        RemainAfterExit = true;
+      }
+      (harden (
         {
-          Type = "oneshot";
-          User = "root";
-          RemainAfterExit = true;
+          # MemoryMax, not memoryMax: harden{}'s argument is capitalised and
+          # a lowercase key is passed through to the unit verbatim, where
+          # systemd rejects it as an unknown directive AND the intended
+          # ceiling is silently replaced by harden's 512M default.
+          MemoryMax = memoryMax;
+          ReadWritePaths = [mountRoot];
         }
-        (harden (
-          {
-            # MemoryMax, not memoryMax: harden{}'s argument is capitalised and
-            # a lowercase key is passed through to the unit verbatim, where
-            # systemd rejects it as an unknown directive AND the intended
-            # ceiling is silently replaced by harden's 512M default.
-            MemoryMax = memoryMax;
-            ReadWritePaths = [ mountRoot ];
-          }
-          // lib.optionalAttrs (owner != null) {
-            CapabilityBoundingSet = "CAP_CHOWN CAP_FOWNER CAP_DAC_OVERRIDE";
-          }
-        ))
-        (serviceOneshotDefaults { })
-      ];
-      script = lib.concatStringsSep "\n" (
-        [ "mkdir -p ${directory}" ]
-        ++ lib.optional (owner != null) "chown ${owner}:${group} ${directory}"
-        ++ [ "chmod ${mode} ${directory}" ]
-      );
-    };
+        // lib.optionalAttrs (owner != null) {
+          CapabilityBoundingSet = "CAP_CHOWN CAP_FOWNER CAP_DAC_OVERRIDE";
+        }
+      ))
+      (serviceOneshotDefaults {})
+    ];
+    script = lib.concatStringsSep "\n" (
+      ["mkdir -p ${directory}"]
+      ++ lib.optional (owner != null) "chown ${owner}:${group} ${directory}"
+      ++ ["chmod ${mode} ${directory}"]
+    );
+  };
 
   # mkSqliteBackupUnit: the WAL-safe SQLite backup pair (service + timer) as
   # a unit generator. The canonical script is the SUPERSET:
@@ -114,93 +109,92 @@ in
   #     fails the run as a clean dependency error, never 226/NAMESPACE
   #   - ReadWritePaths is exactly the backup directory
   #   - the timer is Persistent (missed runs while powered off catch up)
-  mkSqliteBackupUnit =
-    {
-      pkgs,
-      name,
-      description,
-      dbPath,
-      backupDir,
-      prefix,
-      retentionDays,
-      startAt,
-      timestampFormat ? "%Y-%m-%d",
-      serviceDeps ? [ ],
-      timerAfter ? [ ],
-      onFailureDeps ? [ ],
-      startLimitBurst ? 5,
-      startLimitIntervalSec ? 300,
-      memoryMax ? "512M",
-      # CapabilityBoundingSet for the single harden call — pass
-      # "CAP_DAC_READ_SEARCH" when the DB sits behind a 0700 DynamicUser
-      # StateDirectory. A SEPARATE harden{} in extraServiceConfig would
-      # conflict on CapabilityBoundingSet (two plain strings cannot merge).
-      caps ? "",
-      extraServiceConfig ? [ ],
-    }:
-    {
-      services.${name} = {
-        inherit description;
-        after = serviceDeps;
-        wants = serviceDeps;
-        unitConfig.RequiresMountsFor = [ backupDir ];
-        onFailure = onFailureDeps;
-        inherit startLimitBurst;
-        inherit startLimitIntervalSec;
-        serviceConfig = lib.mkMerge (
-          [
+  mkSqliteBackupUnit = {
+    pkgs,
+    name,
+    description,
+    dbPath,
+    backupDir,
+    prefix,
+    retentionDays,
+    startAt,
+    timestampFormat ? "%Y-%m-%d",
+    serviceDeps ? [],
+    timerAfter ? [],
+    onFailureDeps ? [],
+    startLimitBurst ? 5,
+    startLimitIntervalSec ? 300,
+    memoryMax ? "512M",
+    # CapabilityBoundingSet for the single harden call — pass
+    # "CAP_DAC_READ_SEARCH" when the DB sits behind a 0700 DynamicUser
+    # StateDirectory. A SEPARATE harden{} in extraServiceConfig would
+    # conflict on CapabilityBoundingSet (two plain strings cannot merge).
+    caps ? "",
+    extraServiceConfig ? [],
+  }: {
+    services.${name} = {
+      inherit description;
+      after = serviceDeps;
+      wants = serviceDeps;
+      unitConfig.RequiresMountsFor = [backupDir];
+      onFailure = onFailureDeps;
+      inherit startLimitBurst;
+      inherit startLimitIntervalSec;
+      serviceConfig = lib.mkMerge (
+        [
+          {
+            Type = "oneshot";
+            ExecStart = pkgs.writeShellScript name ''
+              set -euo pipefail
+              db="${dbPath}"
+              if [ ! -f "$db" ]; then
+                echo "${name}: database $db does not exist yet — nothing to back up"
+                exit 0
+              fi
+              find ${backupDir} -name "${prefix}*.sqlite-journal" | while read -r j; do
+                echo "${name}: healing crash-interrupted backup remnant: $j (+ sibling)"
+                rm -f "$j" "''${j%-journal}"
+              done
+              timestamp=$(date +${timestampFormat})
+              dst="${backupDir}/${prefix}$timestamp.sqlite"
+              # mktemp'd sibling (a fixed .tmp name collides with stale
+              # leftovers and cannot self-heal) — the trap plus the
+              # ${prefix}*.sqlite* retention match keep any crash remnant
+              # from lingering.
+              tmp="$(mktemp "$dst.XXXXXX")"
+              trap 'rm -f "$tmp"' EXIT
+              ${lib.getExe pkgs.sqlite} -readonly "$db" ".backup '$tmp'"
+              ${lib.getExe pkgs.sqlite} -readonly "$tmp" "PRAGMA quick_check;" | grep -qx ok
+              mv "$tmp" "$dst"
+              echo "${name}: wrote $dst"
+              find ${backupDir} -name "${prefix}*.sqlite*" -mtime +${toString retentionDays} -delete
+            '';
+            ReadWritePaths = [backupDir];
+          }
+          (harden (
             {
-              Type = "oneshot";
-              ExecStart = pkgs.writeShellScript name ''
-                set -euo pipefail
-                db="${dbPath}"
-                if [ ! -f "$db" ]; then
-                  echo "${name}: database $db does not exist yet — nothing to back up"
-                  exit 0
-                fi
-                find ${backupDir} -name "${prefix}*.sqlite-journal" | while read -r j; do
-                  echo "${name}: healing crash-interrupted backup remnant: $j (+ sibling)"
-                  rm -f "$j" "''${j%-journal}"
-                done
-                timestamp=$(date +${timestampFormat})
-                dst="${backupDir}/${prefix}$timestamp.sqlite"
-                # mktemp'd sibling (a fixed .tmp name collides with stale
-                # leftovers and cannot self-heal) — the trap plus the
-                # ${prefix}*.sqlite* retention match keep any crash remnant
-                # from lingering.
-                tmp="$(mktemp "$dst.XXXXXX")"
-                trap 'rm -f "$tmp"' EXIT
-                ${lib.getExe pkgs.sqlite} -readonly "$db" ".backup '$tmp'"
-                ${lib.getExe pkgs.sqlite} -readonly "$tmp" "PRAGMA quick_check;" | grep -qx ok
-                mv "$tmp" "$dst"
-                echo "${name}: wrote $dst"
-                find ${backupDir} -name "${prefix}*.sqlite*" -mtime +${toString retentionDays} -delete
-              '';
-              ReadWritePaths = [ backupDir ];
+              MemoryMax = memoryMax;
             }
-            (harden (
-              {
-                MemoryMax = memoryMax;
-              }
-              // lib.optionalAttrs (caps != "") {
-                CapabilityBoundingSet = caps;
-              }
-            ))
-            (serviceOneshotDefaults { })
-          ]
-          ++ extraServiceConfig
-        );
-      };
-      timers.${name} = {
-        description = "${description} (timer)";
-        wantedBy = [ "timers.target" ];
-        after = timerAfter;
-        timerConfig = {
+            // lib.optionalAttrs (caps != "") {
+              CapabilityBoundingSet = caps;
+            }
+          ))
+          (serviceOneshotDefaults {})
+        ]
+        ++ extraServiceConfig
+      );
+    };
+    timers.${name} = {
+      description = "${description} (timer)";
+      wantedBy = ["timers.target"];
+      after = timerAfter;
+      timerConfig =
+        {
           Persistent = true;
         }
         // startAt;
-      };
     };
+  };
 
   # mkMetricTextfileCollector: the fail-closed Prometheus textfile collector
   # pair (service + timer) as a unit generator. The wrapper owns the
@@ -218,99 +212,93 @@ in
   #     phantom-greens it
   # Returns { services.<name>; timers.<name>; } for a caller-side
   # `systemd = mkMetricTextfileCollector { ... };`.
-  mkMetricTextfileCollector =
-    {
-      pkgs,
-      name,
-      description,
-      outFile,
-      script,
-      timerConfig,
-      textfileDir ? dirOf outFile,
-      timeoutStartSec ? "3min",
-      memoryMax ? "128M",
-      caps ? "",
-      extraPath ? [ ],
-      onFailureDeps ? [ ],
-      startLimitBurst ? 5,
-      startLimitIntervalSec ? 300,
-    }:
-    {
-      services.${name} = {
-        inherit description;
-        inherit startLimitBurst;
-        inherit startLimitIntervalSec;
-        onFailure = onFailureDeps;
-        path = [ pkgs.coreutils ] ++ extraPath;
-        serviceConfig = lib.mkMerge [
+  mkMetricTextfileCollector = {
+    pkgs,
+    name,
+    description,
+    outFile,
+    script,
+    timerConfig,
+    textfileDir ? dirOf outFile,
+    timeoutStartSec ? "3min",
+    memoryMax ? "128M",
+    caps ? "",
+    extraPath ? [],
+    onFailureDeps ? [],
+    startLimitBurst ? 5,
+    startLimitIntervalSec ? 300,
+  }: {
+    services.${name} = {
+      inherit description;
+      inherit startLimitBurst;
+      inherit startLimitIntervalSec;
+      onFailure = onFailureDeps;
+      path = [pkgs.coreutils] ++ extraPath;
+      serviceConfig = lib.mkMerge [
+        {
+          Type = "oneshot";
+          User = "root";
+          TimeoutStartSec = timeoutStartSec;
+        }
+        (harden (
           {
-            Type = "oneshot";
-            User = "root";
-            TimeoutStartSec = timeoutStartSec;
+            ReadWritePaths = [textfileDir];
+            MemoryMax = memoryMax;
           }
-          (harden (
-            {
-              ReadWritePaths = [ textfileDir ];
-              MemoryMax = memoryMax;
-            }
-            // lib.optionalAttrs (caps != "") {
-              CapabilityBoundingSet = caps;
-            }
-          ))
-          (serviceOneshotDefaults { })
-        ];
-        script = ''
-          set -eu
-          OUT="${outFile}"
-          mkdir -p "${textfileDir}"
-          TMP="$(mktemp "$OUT.XXXXXX")"
-          chmod 644 "$TMP"
-          trap 'rm -f "$TMP"' EXIT
-          (
-          ${script}
-          ) > "$TMP"
-          mv "$TMP" "$OUT"
-        '';
-      };
-      timers.${name} = {
-        description = "${description} (timer)";
-        wantedBy = [ "timers.target" ];
-        inherit timerConfig;
-      };
+          // lib.optionalAttrs (caps != "") {
+            CapabilityBoundingSet = caps;
+          }
+        ))
+        (serviceOneshotDefaults {})
+      ];
+      script = ''
+        set -eu
+        OUT="${outFile}"
+        mkdir -p "${textfileDir}"
+        TMP="$(mktemp "$OUT.XXXXXX")"
+        chmod 644 "$TMP"
+        trap 'rm -f "$TMP"' EXIT
+        (
+        ${script}
+        ) > "$TMP"
+        mv "$TMP" "$OUT"
+      '';
     };
+    timers.${name} = {
+      description = "${description} (timer)";
+      wantedBy = ["timers.target"];
+      inherit timerConfig;
+    };
+  };
 
   # unitExecText: a unit's Exec* line texts + Environment entries as one
   # concatenated string — the shared scan surface of the port-registry and
   # gatus-coverage eval audits (identical scanner, zero drift: a new Exec
   # key or Environment form added here lands in BOTH audits at once).
   # " \n " separator keeps line-position info for error messages.
-  unitExecText =
-    svc:
-    let
-      scanKeys = [
-        "ExecStart"
-        "ExecStartPre"
-        "ExecStartPost"
-        "ExecStop"
-        "ExecStopPost"
-        "ExecReload"
-        "ExecCondition"
-      ];
-      envToString =
-        env:
-        if builtins.isAttrs env then
-          lib.mapAttrsToList (k: v: "${k}=${toString v}") env
-        else
-          map toString (lib.toList env);
-    in
+  unitExecText = svc: let
+    scanKeys = [
+      "ExecStart"
+      "ExecStartPre"
+      "ExecStartPost"
+      "ExecStop"
+      "ExecStopPost"
+      "ExecReload"
+      "ExecCondition"
+    ];
+    envToString = env:
+      if builtins.isAttrs env
+      then lib.mapAttrsToList (k: v: "${k}=${toString v}") env
+      else map toString (lib.toList env);
+  in
     lib.concatStringsSep " \n " (
       (map (
-        k:
-        if svc.serviceConfig ? ${k} then
-          (lib.concatMapStringsSep " " toString (lib.toList svc.serviceConfig.${k}))
-        else
-          ""
-      ) scanKeys)
+          k:
+            if svc.serviceConfig ? ${k}
+            then (lib.concatMapStringsSep " " toString (lib.toList svc.serviceConfig.${k}))
+            else ""
+        )
+        scanKeys)
       ++ (lib.optionals (svc.serviceConfig ? Environment) (envToString svc.serviceConfig.Environment))
     );
 
@@ -329,29 +317,29 @@ in
   # Zero-padded groups ("10:00" timestamps → "00") are DROPPED before
   # toInt: a leading zero is never a port literal in this style, and
   # lib.toInt("00") dies on the octal/decimal ambiguity.
-  extractPortLiterals =
-    text:
-    let
-      portRegex = "((127\\.0\\.0\\.1|localhost|0\\.0\\.0\\.0)[: ]([0-9]{2,5})([^0-9]|$))|([^0-9]:([0-9]{2,5})([^0-9a-zA-Z]|$))|(--port[ =]([0-9]{2,5})([^0-9a-zA-Z]|$))";
-      parts = builtins.split portRegex text;
-      digitGroups = builtins.filter (g: builtins.isString g && builtins.match "[0-9]+" g != null) (
-        lib.flatten (map (x: if builtins.isList x then x else [ ]) parts)
-      );
-      portCandidates = builtins.filter (g: builtins.match "0[0-9]+" g == null) digitGroups;
-    in
+  extractPortLiterals = text: let
+    portRegex = "((127\\.0\\.0\\.1|localhost|0\\.0\\.0\\.0)[: ]([0-9]{2,5})([^0-9]|$))|([^0-9]:([0-9]{2,5})([^0-9a-zA-Z]|$))|(--port[ =]([0-9]{2,5})([^0-9a-zA-Z]|$))";
+    parts = builtins.split portRegex text;
+    digitGroups = builtins.filter (g: builtins.isString g && builtins.match "[0-9]+" g != null) (
+      lib.flatten (map (x:
+        if builtins.isList x
+        then x
+        else [])
+      parts)
+    );
+    portCandidates = builtins.filter (g: builtins.match "0[0-9]+" g == null) digitGroups;
+  in
     lib.unique (builtins.filter (p: p >= 2 && p <= 65535) (map lib.toInt portCandidates));
 
-  mkSecretCheck =
-    pkgs:
-    {
-      name,
-      secretPath,
-      message,
-      extraCheck ? "",
-    }:
+  mkSecretCheck = pkgs: {
+    name,
+    secretPath,
+    message,
+    extraCheck ? "",
+  }:
     pkgs.writeShellApplication {
       name = "check-${name}";
-      runtimeInputs = [ pkgs.coreutils ];
+      runtimeInputs = [pkgs.coreutils];
       text = ''
         secret_path="${secretPath}"
         if [ ! -s "$secret_path" ]; then
@@ -362,67 +350,63 @@ in
       '';
     };
 
-  mkDesktopNotifyService =
-    pkgs:
-    {
-      name,
-      description,
-      checkScript,
-      runtimeInputs,
-      user,
-      uid,
-      interval ? "5min",
-      bootDelay ? "2min",
-      hardenFn ? harden,
-      extraHarden ? { },
-      extraServiceConfig ? { },
-    }:
-    let
-      script = pkgs.writeShellApplication {
-        name = "${name}-check";
-        inherit runtimeInputs;
-        text = checkScript;
-      };
-    in
-    {
-      timer = {
-        description = "Periodic ${description}";
-        timerConfig = {
-          OnBootSec = bootDelay;
-          OnUnitActiveSec = interval;
-          Persistent = true;
-        };
-        wantedBy = [ "timers.target" ];
-      };
-
-      service = {
-        inherit description onFailure;
-        serviceConfig = lib.mkMerge [
-          {
-            Type = "oneshot";
-            User = user;
-            Environment = [
-              "DISPLAY=:0"
-              "WAYLAND_DISPLAY=wayland-1"
-              "XDG_RUNTIME_DIR=/run/user/${uid}"
-            ];
-            ExecStart = lib.getExe script;
-            StandardOutput = "journal";
-            StandardError = "journal";
-          }
-          (hardenFn (
-            lib.mkMerge [
-              {
-                ProtectHome = false;
-                NoNewPrivileges = false;
-              }
-              extraHarden
-            ]
-          ))
-          extraServiceConfig
-        ];
-      };
+  mkDesktopNotifyService = pkgs: {
+    name,
+    description,
+    checkScript,
+    runtimeInputs,
+    user,
+    uid,
+    interval ? "5min",
+    bootDelay ? "2min",
+    hardenFn ? harden,
+    extraHarden ? {},
+    extraServiceConfig ? {},
+  }: let
+    script = pkgs.writeShellApplication {
+      name = "${name}-check";
+      inherit runtimeInputs;
+      text = checkScript;
     };
+  in {
+    timer = {
+      description = "Periodic ${description}";
+      timerConfig = {
+        OnBootSec = bootDelay;
+        OnUnitActiveSec = interval;
+        Persistent = true;
+      };
+      wantedBy = ["timers.target"];
+    };
+
+    service = {
+      inherit description onFailure;
+      serviceConfig = lib.mkMerge [
+        {
+          Type = "oneshot";
+          User = user;
+          Environment = [
+            "DISPLAY=:0"
+            "WAYLAND_DISPLAY=wayland-1"
+            "XDG_RUNTIME_DIR=/run/user/${uid}"
+          ];
+          ExecStart = lib.getExe script;
+          StandardOutput = "journal";
+          StandardError = "journal";
+        }
+        (hardenFn (
+          lib.mkMerge [
+            {
+              ProtectHome = false;
+              NoNewPrivileges = false;
+            }
+            extraHarden
+          ]
+        ))
+        extraServiceConfig
+      ];
+    };
+  };
 
   # BFQ I/O priority tiers. Each helper returns a systemd serviceConfig
   # fragment — merge with `mkMerge` alongside `harden {}`.
@@ -488,20 +472,18 @@ in
   # Returns a writeShellApplication derivation. NOT for use inside Nix build
   # sandboxes (systemd-run is unavailable there). Use in devShells or
   # system/user packages.
-  wrapWithMemoryLimit =
-    pkgs:
-    {
-      name,
-      maxMemory,
-      command,
-      extraArgs ? [ ],
-      ioClass ? "best-effort",
-      ioPriority ? 7,
-      nice ? 10,
-    }:
+  wrapWithMemoryLimit = pkgs: {
+    name,
+    maxMemory,
+    command,
+    extraArgs ? [],
+    ioClass ? "best-effort",
+    ioPriority ? 7,
+    nice ? 10,
+  }:
     pkgs.writeShellApplication {
       name = "${name}-memlimit";
-      runtimeInputs = [ pkgs.systemd ];
+      runtimeInputs = [pkgs.systemd];
       text = ''
         exec systemd-run \
           --user --collect --wait \

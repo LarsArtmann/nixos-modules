@@ -26,14 +26,14 @@ carrier loss; the daemon evicts them and re-adds on carrier return).
 
 ## Options
 
-| Option | Type | Default | Notes |
-|---|---|---|---|
-| `enable` | bool | false | inert until enabled |
-| `ethernetInterface` | str | `"eno1"` | primary (static IP) |
-| `fallbackInterface` | str | `"wlan0"` | NM-managed standby |
-| `gateway` | nullOr str | null | null → derived from `networking.defaultGateway` |
-| `pollIntervalSeconds` | positive int | 1 | cable pull detected within one poll |
-| `trustFallbackInterface` | bool | true | adds fallback to `firewall.trustedInterfaces` |
+| Option                   | Type         | Default   | Notes                                           |
+| ------------------------ | ------------ | --------- | ----------------------------------------------- |
+| `enable`                 | bool         | false     | inert until enabled                             |
+| `ethernetInterface`      | str          | `"eno1"`  | primary (static IP)                             |
+| `fallbackInterface`      | str          | `"wlan0"` | NM-managed standby                              |
+| `gateway`                | nullOr str   | null      | null → derived from `networking.defaultGateway` |
+| `pollIntervalSeconds`    | positive int | 1         | cable pull detected within one poll             |
+| `trustFallbackInterface` | bool         | true      | adds fallback to `firewall.trustedInterfaces`   |
 
 ## Design notes
 

@@ -1,49 +1,42 @@
-lib:
-let
+lib: let
   inherit (lib) mkOption types;
-in
-{
-  systemdServiceIdentity =
-    {
-      defaultUser,
-      defaultGroup ? defaultUser,
-      defaultStateDir ? "/var/lib/${defaultUser}",
-    }:
-    {
-      user = mkOption {
-        type = types.str;
-        default = defaultUser;
-        description = "User account for the service";
-      };
-      group = mkOption {
-        type = types.str;
-        default = defaultGroup;
-        description = "Group for the service";
-      };
-      stateDir = mkOption {
-        type = types.str;
-        default = defaultStateDir;
-        description = "State directory for the service";
-      };
+in {
+  systemdServiceIdentity = {
+    defaultUser,
+    defaultGroup ? defaultUser,
+    defaultStateDir ? "/var/lib/${defaultUser}",
+  }: {
+    user = mkOption {
+      type = types.str;
+      default = defaultUser;
+      description = "User account for the service";
     };
+    group = mkOption {
+      type = types.str;
+      default = defaultGroup;
+      description = "Group for the service";
+    };
+    stateDir = mkOption {
+      type = types.str;
+      default = defaultStateDir;
+      description = "State directory for the service";
+    };
+  };
 
-  servicePort =
-    default: description:
+  servicePort = default: description:
     mkOption {
       type = types.port;
       inherit default description;
     };
 
-  restartDelay =
-    default:
+  restartDelay = default:
     mkOption {
       type = types.str;
       inherit default;
       description = "Delay before restarting after failure";
     };
 
-  stopTimeout =
-    default:
+  stopTimeout = default:
     mkOption {
       type = types.str;
       inherit default;

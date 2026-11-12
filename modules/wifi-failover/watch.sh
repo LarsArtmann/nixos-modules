@@ -32,78 +32,78 @@ DEBUG_POLL="${DEBUG_POLL:-0}"
 log() { echo "wifi-failover: $*"; }
 
 carrier() {
-  # Reading /sys/class/net/<if>/carrier fails (EINVAL) while the link is down
-  # and the file does not exist when the interface is absent — both mean "no".
-  cat "/sys/class/net/${ENO1_IF}/carrier" 2>/dev/null || echo 0
+	# Reading /sys/class/net/<if>/carrier fails (EINVAL) while the link is down
+	# and the file does not exist when the interface is absent — both mean "no".
+	cat "/sys/class/net/${ENO1_IF}/carrier" 2>/dev/null || echo 0
 }
 
 has_v4_default() {
-  ip -4 route show default 2>/dev/null | grep -Eq "dev ${ENO1_IF}( |$)"
+	ip -4 route show default 2>/dev/null | grep -Eq "dev ${ENO1_IF}( |$)"
 }
 
 del_route_line() {
-  # The kernel ANNOTATES routes of a carrier-down link with the `linkdown`
-  # keyword (ip-route(8)) — `ip route del` rejects it ("linkdown is garbage"),
-  # so strip every annotation occurrence before handing the line back.
-  # Optional first arg "-6" selects the IPv6 family (otherwise the v6 lines
-  # from `ip -6 route show` are fed to the v4 parser, which rejects the v6
-  # address and the eviction never works).
-  local fam="-4"
-  if [ "${1:-}" = "-6" ]; then
-    fam="-6"
-    shift
-  fi
-  local line="$1"
-  local -a words=() clean=()
-  read -r -a words <<<"$line"
-  local w
-  for w in "${words[@]}"; do
-    if [ "$w" != "linkdown" ]; then
-      clean+=("$w")
-    fi
-  done
-  ip "$fam" route del "${clean[@]}"
+	# The kernel ANNOTATES routes of a carrier-down link with the `linkdown`
+	# keyword (ip-route(8)) — `ip route del` rejects it ("linkdown is garbage"),
+	# so strip every annotation occurrence before handing the line back.
+	# Optional first arg "-6" selects the IPv6 family (otherwise the v6 lines
+	# from `ip -6 route show` are fed to the v4 parser, which rejects the v6
+	# address and the eviction never works).
+	local fam="-4"
+	if [ "${1:-}" = "-6" ]; then
+		fam="-6"
+		shift
+	fi
+	local line="$1"
+	local -a words=() clean=()
+	read -r -a words <<<"$line"
+	local w
+	for w in "${words[@]}"; do
+		if [ "$w" != "linkdown" ]; then
+			clean+=("$w")
+		fi
+	done
+	ip "$fam" route del "${clean[@]}"
 }
 
 del_pinned_defaults() {
-  # Delete every default route bound to the ethernet interface, v4 then v6.
-  # Loop-guarded: each pass must delete one route or bail out. Line capture
-  # uses grep -m1 + ||true + empty-check: under `set -euo pipefail` a bare
-  # `grep | head -1` assignment SIGPIPEs grep when >=2 routes match (exactly
-  # the multi-pinned-route case) and a grep with zero matches would kill the
-  # daemon mid-failover via set -e (restart into start-limit = dead resolver
-  # of the exact blackhole this daemon exists to prevent).
-  while ip -4 route show default 2>/dev/null | grep -Eq "dev ${ENO1_IF}( |$)"; do
-    line="$(ip -4 route show default 2>/dev/null | grep -m1 -E "dev ${ENO1_IF}( |$)" || true)"
-    [ -n "$line" ] || break
-    log "FAILOVER: carrier lost on ${ENO1_IF} — removing pinned default route (${line})"
-    del_route_line "$line" || {
-      log "WARN: failed to delete v4 default route — traffic may still pin to ${ENO1_IF}"
-      break
-    }
-  done
-  while ip -6 route show default 2>/dev/null | grep -Eq "dev ${ENO1_IF}( |$)"; do
-    line="$(ip -6 route show default 2>/dev/null | grep -m1 -E "dev ${ENO1_IF}( |$)" || true)"
-    [ -n "$line" ] || break
-    log "FAILOVER: removing pinned IPv6 default route (${line})"
-    del_route_line -6 "$line" || {
-      log "WARN: failed to delete v6 default route"
-      break
-    }
-  done
-  ip route flush cache 2>/dev/null || true
+	# Delete every default route bound to the ethernet interface, v4 then v6.
+	# Loop-guarded: each pass must delete one route or bail out. Line capture
+	# uses grep -m1 + ||true + empty-check: under `set -euo pipefail` a bare
+	# `grep | head -1` assignment SIGPIPEs grep when >=2 routes match (exactly
+	# the multi-pinned-route case) and a grep with zero matches would kill the
+	# daemon mid-failover via set -e (restart into start-limit = dead resolver
+	# of the exact blackhole this daemon exists to prevent).
+	while ip -4 route show default 2>/dev/null | grep -Eq "dev ${ENO1_IF}( |$)"; do
+		line="$(ip -4 route show default 2>/dev/null | grep -m1 -E "dev ${ENO1_IF}( |$)" || true)"
+		[ -n "$line" ] || break
+		log "FAILOVER: carrier lost on ${ENO1_IF} — removing pinned default route (${line})"
+		del_route_line "$line" || {
+			log "WARN: failed to delete v4 default route — traffic may still pin to ${ENO1_IF}"
+			break
+		}
+	done
+	while ip -6 route show default 2>/dev/null | grep -Eq "dev ${ENO1_IF}( |$)"; do
+		line="$(ip -6 route show default 2>/dev/null | grep -m1 -E "dev ${ENO1_IF}( |$)" || true)"
+		[ -n "$line" ] || break
+		log "FAILOVER: removing pinned IPv6 default route (${line})"
+		del_route_line -6 "$line" || {
+			log "WARN: failed to delete v6 default route"
+			break
+		}
+	done
+	ip route flush cache 2>/dev/null || true
 }
 
 add_primary_default() {
-  if has_v4_default; then
-    return 0
-  fi
-  if ip route add default via "${GW}" dev "${ENO1_IF}"; then
-    log "RESTORE: carrier back on ${ENO1_IF} — default route via ${GW} re-added (primary again, fallback ${FALLBACK_IF} stays as hot standby)"
-    ip route flush cache 2>/dev/null || true
-  else
-    log "WARN: carrier up on ${ENO1_IF} but could not add default route via ${GW}"
-  fi
+	if has_v4_default; then
+		return 0
+	fi
+	if ip route add default via "${GW}" dev "${ENO1_IF}"; then
+		log "RESTORE: carrier back on ${ENO1_IF} — default route via ${GW} re-added (primary again, fallback ${FALLBACK_IF} stays as hot standby)"
+		ip route flush cache 2>/dev/null || true
+	else
+		log "WARN: carrier up on ${ENO1_IF} but could not add default route via ${GW}"
+	fi
 }
 
 log "starting carrier watch (primary=${ENO1_IF} gw=${GW}, fallback=${FALLBACK_IF}, poll=${POLL}s)"
@@ -111,26 +111,26 @@ log "starting carrier watch (primary=${ENO1_IF} gw=${GW}, fallback=${FALLBACK_IF
 last="init"
 polls=0
 while true; do
-  c="$(carrier)"
-  if [ "$DEBUG_POLL" = "1" ]; then
-    polls=$((polls + 1))
-    log "DEBUG poll=$polls carrier=$c last=$last"
-  fi
-  if [ "$c" = "1" ]; then
-    if [ "$last" != "up" ]; then
-      log "${ENO1_IF} carrier UP"
-      add_primary_default
-    fi
-    last="up"
-  else
-    if [ "$last" != "down" ]; then
-      if has_v4_default || ip -6 route show default 2>/dev/null | grep -Eq "dev ${ENO1_IF}( |$)"; then
-        del_pinned_defaults
-        active="$(ip -4 route show default 2>/dev/null | head -1 || true)"
-        log "active default route now: ${active:-NONE (no fallback route present)}"
-      fi
-    fi
-    last="down"
-  fi
-  sleep "$POLL"
+	c="$(carrier)"
+	if [ "$DEBUG_POLL" = "1" ]; then
+		polls=$((polls + 1))
+		log "DEBUG poll=$polls carrier=$c last=$last"
+	fi
+	if [ "$c" = "1" ]; then
+		if [ "$last" != "up" ]; then
+			log "${ENO1_IF} carrier UP"
+			add_primary_default
+		fi
+		last="up"
+	else
+		if [ "$last" != "down" ]; then
+			if has_v4_default || ip -6 route show default 2>/dev/null | grep -Eq "dev ${ENO1_IF}( |$)"; then
+				del_pinned_defaults
+				active="$(ip -4 route show default 2>/dev/null | head -1 || true)"
+				log "active default route now: ${active:-NONE (no fallback route present)}"
+			fi
+		fi
+		last="down"
+	fi
+	sleep "$POLL"
 done
