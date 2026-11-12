@@ -54,6 +54,10 @@
           }
           // lib.optionalAttrs (system == "x86_64-linux") {
             wifi-failover-vm = pkgs.testers.runNixOSTest (import ./tests/wifi-failover.nix {inherit pkgs;});
+            boot-mirror-contract = import ./tests/boot-mirror.nix {
+              inherit lib pkgs;
+              module = ./modules/boot-mirror;
+            };
             module-list = pkgs.runCommand "module-list" {} ''
               # Forces evaluation of every discovered module path and records the
               # public surface; a change here shows up as a check-input diff.
