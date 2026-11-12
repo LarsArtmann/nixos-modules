@@ -69,6 +69,10 @@
   parseMemoryBytes = v: let
     s = toString (memoryValue v);
     match = builtins.match "([0-9]+)(K|M|G|T)?" s;
+    # builtins.match yields null (not "") for a non-participating optional
+    # group — a bare-byte value ("5242880") must resolve to multiplier 1,
+    # not crash the dynamic select (found by tests/lib-eval.nix, 2026-11-12).
+    suffix = builtins.elemAt match 1;
     multiplier =
       if match == null
       then null
@@ -81,7 +85,9 @@
           "" = 1;
         }
           .${
-          builtins.elemAt match 1
+          if suffix == null
+          then ""
+          else suffix
         };
   in
     if match == null

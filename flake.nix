@@ -51,6 +51,12 @@
         in
           {
             formatting = treefmtEval.config.build.check self;
+            # Pure-eval lib contracts: portable, so they run on every system
+            # (the VM/contract checks below stay x86_64-only until un-gated).
+            lib-eval = import ./tests/lib-eval.nix {
+              inherit lib pkgs;
+              collectionLib = collectionLib;
+            };
           }
           // lib.optionalAttrs (system == "x86_64-linux") {
             wifi-failover-vm = pkgs.testers.runNixOSTest (import ./tests/wifi-failover.nix {inherit pkgs;});
