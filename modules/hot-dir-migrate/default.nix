@@ -221,8 +221,9 @@ in {
           declare -A liveSessionDirs=()
           for pidDir in /proc/[0-9]*; do
             [ "$(cat "$pidDir/comm" 2>/dev/null)" = "${cfg.matchComm}" ] || continue
+            echo "DBG: scanning ${cfg.matchComm} pid $pidDir yama=$(cat /proc/sys/kernel/yama/ptrace_scope 2>/dev/null) fdls=[$(ls "$pidDir/fd" 2>&1 | head -8 | tr '\n' ' ')]" >&2
             for link in "$pidDir"/fd/* "$pidDir"/cwd; do
-              openPath="$(readlink "$link" 2>/dev/null)" || continue
+              openPath="$(readlink "$link" 2>/dev/null)" || { echo "DBG: readlink FAILED: $link" >&2; continue; }
               case "$openPath" in
                 "$projects"/${cfg.dirName}|"$projects"/${cfg.dirName}/*|"$projects"/*/${cfg.dirName}|"$projects"/*/${cfg.dirName}/*)
                   liveSessionDirs["''${openPath%%/${cfg.dirName}*}/${cfg.dirName}"]=1
