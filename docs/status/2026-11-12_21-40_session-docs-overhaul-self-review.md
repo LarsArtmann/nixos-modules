@@ -29,7 +29,8 @@ docs-health full audit (BUILD + VERIFY + ANNOTATE/ARCHIVE).
    missing).
 4. **FEATURES.md built** — 23 rows across 3 domains, evidence column
    mandatory, 2 deliberate PARTIALLY_FUNCTIONAL rows (no rounding up).
-5. **TODO_LIST.md built** — 7 items, each verified against code as
+5. **TODO_LIST.md built** — ~~7~~ 6 items (miscounted — computed 2026-11-12
+   22:0x via row grep; corrected in CHANGELOG too), each verified against code as
    not-already-done.
 6. **ROADMAP.md built** — 3 themes + 3 non-goals, each grounded (lib/README
    kill path; dual-wan conflict assertion; audit-gate charter).
