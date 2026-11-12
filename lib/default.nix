@@ -1,8 +1,9 @@
 # Collection lib — the systemd hardening spine, extracted from SystemNix
 # lib/default.nix (portable half). Everything here depends on nixpkgs lib
 # ONLY. Fleet-bound helpers (mkOidcGate, mkDnsGate, ports registry, gatus
-# helpers, rocm, filesystems, buildcache) stay SystemNix-side: see
-# lib/README.md for the split contract and the kill path.
+# helpers, rocm, buildcache) stay SystemNix-side: see lib/README.md for the
+# split contract and the kill path. The filesystems guard (mkFilesystem)
+# moved in with the hot-tier module — pure lib, zero fleet coupling.
 lib: let
   harden = import ./systemd.nix {inherit lib;};
   inherit
@@ -26,6 +27,13 @@ in {
     onFailureP0
     ;
   serviceTypes = import ./types.nix lib;
+
+  # Cross-filesystem mount-option contamination guard (moved in from
+  # SystemNix lib/filesystems.nix): throws on fs-specific mount options used
+  # on the wrong fsType (e.g. discard=async on ext4 -> mount failure ->
+  # emergency shell). SystemNix keeps a fork until the lib consolidation
+  # kills its side.
+  mkFilesystem = import ./filesystems.nix lib;
 
   # Release-verified port handoff for `+`-privileged ExecStartPre use (the
   # berth pattern; see ./port-guard.nix for the full contract).
