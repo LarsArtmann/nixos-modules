@@ -42,6 +42,15 @@ Raw ideas:
 - boot-mirror runtime VM leg — the sync script's bootctl/rsync/diff path has
   never executed inside this repo's test net
 - Renovate/Dependabot for flake inputs (the nixpkgs unstable pin)
+- Test-net ergonomics: a devShell carrying the harness deps (bash/git/rsync),
+  `run.sh --help` + parallel legs, and a tiny check that counts `tests/*.nix`
+  vs flake-wired entries (the session's 7→8→10 count churn, mechanized)
+- Docs automation: per-module option tables generated from the options-json
+  check output; FEATURES infra table split shipped vs pending; the lib/README
+  fork ledger with per-helper SystemNix consumer counts, auto-generated
+- A lint/review rule against unparenthesized selects over applications
+  (`f x y .attr` — the session's phantom-falsehood class), e.g. a statix
+  custom rule
 
 ### 3. Ship eval-time audit gates as modules
 
