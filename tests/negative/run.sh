@@ -150,6 +150,8 @@ run_case hotdirmigrate rwpaths-narrowed hot-dir-migrate-contract fail 'ReadWrite
   'modules/hot-dir-migrate/default.nix' 's|^              cfg.projectsDir$|              "/projects-mutated"|'
 run_case hotdirmigrate bootgated-restored hot-dir-migrate-contract fail 'must NOT be boot-gated' \
   'modules/hot-dir-migrate/default.nix' 's|^        unitConfig.RequiresMountsFor = \[cfg.mountPoint\];$|        wantedBy = ["multi-user.target"];\n        unitConfig.RequiresMountsFor = [cfg.mountPoint];|'
+run_case hotdirmigrate cap-stripped hot-dir-migrate-contract fail "CAP_SYS_PTRACE" \
+  'modules/hot-dir-migrate/default.nix' 's|CAP_CHOWN CAP_FOWNER CAP_DAC_OVERRIDE CAP_SYS_PTRACE|CAP_CHOWN CAP_FOWNER CAP_DAC_OVERRIDE|'
 run_case hotdirmigrate flock-dropped hot-dir-migrate-contract fail 'must carry util-linux' \
   'modules/hot-dir-migrate/default.nix' 's|^          pkgs.util-linux$|          # util-linux stripped|'
 

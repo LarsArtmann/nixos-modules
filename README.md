@@ -46,6 +46,16 @@ gates, and the systemd hardening lib extracted from (and consumed by)
   systemd-boot primary ESP on a 2nd boot disk: reverse-propagates loader-owned
   boot-counting state before the forward rsync, fails loudly on any drift,
   and re-triggers on every loader-entries change. Eval-contract-tested.
+- [`hot-tier`](modules/hot-tier/) — unsnapshotted fast-disk subvolume mounts
+  for always-churning directories (journald logs, access logs): nofail +
+  bounded device-timeout degradation, after/wants (never requires) service
+  wiring, `*Directory=` neutralization + `+`-privileged ownership heal.
+  VM-tested on both the healthy and the detached-disk degraded paths.
+- [`hot-dir-migrate`](modules/hot-dir-migrate/) — relocates per-project
+  session-DB directories onto a hot disk leaving symlinks behind: per-project
+  live-writer guard (comm + fd/cwd under /proc), fresh-write window, depth
+  tripwire, empty-target auto-heal, dry-run rehearsal, timer-pulled never
+  boot-gated. VM-tested across the full behavior matrix.
 
 Each module dir carries its own README with the consumption snippet and
 option notes.

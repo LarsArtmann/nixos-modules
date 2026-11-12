@@ -144,7 +144,14 @@ in {
             # chown for the migrated tree, CAP_FOWNER/CAP_DAC_OVERRIDE for
             # the rename over the project's dir + symlink swap (harden{}'s
             # empty bounding set would EPERM both).
-            CapabilityBoundingSet = "CAP_CHOWN CAP_FOWNER CAP_DAC_OVERRIDE";
+            # CAP_SYS_PTRACE (2026-11-12 regression fix): the liveness
+            # guard reads /proc/<pid>/fd symlink TARGETS of foreign
+            # processes — under yama ptrace_scope=1 that readlink returns
+            # EACCES for every fd even for root without this capability,
+            # silently blinding the guard (the unit relocates a live
+            # writer's dir). Kernels/nixpkgs now ship scope=1 where the
+            # original host ran scope=0.
+            CapabilityBoundingSet = "CAP_CHOWN CAP_FOWNER CAP_DAC_OVERRIDE CAP_SYS_PTRACE";
             # MUST override harden{}'s ProtectHome default (`true`): systemd
             # maps yes/true to INACCESSIBLE-AND-EMPTY (/home becomes an
             # empty tmpfs inside the unit), so `find $projects` ENOENTs

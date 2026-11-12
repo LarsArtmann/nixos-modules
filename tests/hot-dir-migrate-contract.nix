@@ -41,9 +41,11 @@
   contract =
     lib.throwIfNot (svc.unitConfig.RequiresMountsFor or null == ["/mnt/hot"])
     "hot-dir-migrate contract: RequiresMountsFor must pin the MOUNT ROOT (226/NAMESPACE class)"
-    (lib.throwIfNot (lib.any (p: lib.hasInfix "util-linux" (toString p)) svc.path)
-      "hot-dir-migrate contract: unit path must carry util-linux (flock — the phantom-binary class)"
-      (lib.throwIfNot (svc.serviceConfig.ProtectHome == "read-only")
+    (lib.throwIfNot (lib.hasInfix "util-linux" (lib.concatStringsSep " " (map toString svc.path)))
+    "hot-dir-migrate contract: unit path must carry util-linux (flock — the phantom-binary class)"
+    (lib.throwIfNot (lib.hasInfix "CAP_SYS_PTRACE" (svc.serviceConfig.CapabilityBoundingSet or ""))
+    "hot-dir-migrate contract: CapabilityBoundingSet must carry CAP_SYS_PTRACE (yama ptrace_scope=1 readlink class — without it the liveness guard is blind)"
+    (lib.throwIfNot (svc.serviceConfig.ProtectHome == "read-only")
         "hot-dir-migrate contract: ProtectHome must be read-only (true = inaccessible-and-EMPTY /home, every find ENOENTs)"
         (lib.throwIfNot (svc.serviceConfig.ReadWritePaths == ["/mnt/hot" "/home/lars/projects"])
           "hot-dir-migrate contract: ReadWritePaths must be exactly mount root + projects dir"
@@ -70,7 +72,7 @@
                             wantedBy = svc.wantedBy;
                             timerOnBootSec = timer.timerConfig.OnBootSec;
                             timerPersistent = timer.timerConfig.Persistent or null;
-                          }))))))))))));
+                          })))))))))))));
 in
   pkgs.runCommand "hot-dir-migrate-contract" {
     # Force the full eval (assertions included) at build-input time.
