@@ -11,19 +11,22 @@ The systemd hardening spine, extracted from SystemNix `lib/default.nix`
 consumer-side concern), `serviceTypes` (generic option helpers only),
 `mkPortGuard`, `mkStateDir`, `mkPoolDirUnit`, `mkSqliteBackupUnit`,
 `mkMetricTextfileCollector`, `unitExecText`, `extractPortLiterals`,
-`mkSecretCheck`, `mkDesktopNotifyService`, `ioTier`, `wrapWithMemoryLimit`.
+`mkSecretCheck`, `mkDesktopNotifyService`, `ioTier`, `wrapWithMemoryLimit`,
+`mkFilesystem` (`filesystems.nix`, moved 2026-11-12 — the cross-filesystem
+mount-option contamination guard).
 
 **Stayed SystemNix (fleet-bound):** `mkOidcGate`, `mkDnsGate` (dnsblockd
 budget semantics), `ports` registry, `mkHttpCheck`/`discordAlert` (gatus
-fleet monitoring), `rocm`, `mkFilesystem`, buildcache helpers, the Pocket ID
+fleet monitoring), `rocm`, buildcache helpers, the Pocket ID
 `oidcClientType` (lib/types.nix keeps it SystemNix-side).
 
 ## Forked-during-migration
 
 SystemNix `lib/default.nix` KEEPS its local copies while its not-yet-migrated
-modules consume them (123 files import `harden` from the SystemNix path).
-The copies are deleted helper-by-helper as consumers migrate to the
-collection module imports; the final kill (re-pointing SystemNix
-`lib/default.nix` at this lib via the flake input) happens when the last
-consumer moves. Parity diffs + negative-test legs guard against value drift
-between the copies in the meantime.
+modules consume them (123 files import `harden` from the SystemNix path);
+`lib/filesystems.nix` is forked the same way (SystemNix keeps its own
+`mkFilesystem` copy until its consumers move). The copies are deleted
+helper-by-helper as consumers migrate to the collection module imports; the
+final kill (re-pointing SystemNix `lib/default.nix` at this lib via the flake
+input) happens when the last consumer moves. Parity diffs + negative-test
+legs guard against value drift between the copies in the meantime.

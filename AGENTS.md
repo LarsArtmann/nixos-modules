@@ -138,9 +138,11 @@ environment override — renaming log lines in `watch.sh` breaks the test.
 
 - `tests/negative/run.sh` copies only git-TRACKED files (`git ls-files`) —
   untracked new files silently miss the mutation copies.
-- `tests/*.nix` are functions with different signatures: wifi-failover takes
-  `{pkgs}`; boot-mirror takes `{lib, pkgs, module}` — both wired in
-  flake.nix.
+- `tests/*.nix` are functions with two signatures: VM tests take `{pkgs}`
+  (wifi-failover ignores it as `_`) — wifi-failover, hot-tier-journal,
+  hot-tier-caddy, hot-dir-migrate; eval-contract tests take
+  `{lib, pkgs, module}` — boot-mirror, hot-tier-contract,
+  hot-dir-migrate-contract. All 7 wired in flake.nix.
 - Unit names with dashes: a literal `after = ["boot-mirror.mount"]` names a
   nonexistent unit (systemd escapes dashes: `boot\x2dmirror.mount`). Use
   `unitConfig.RequiresMountsFor`, which implies Requires=+After= on the real

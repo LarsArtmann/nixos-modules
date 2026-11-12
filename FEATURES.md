@@ -42,8 +42,8 @@ SystemNix fleet. Helpers without a dedicated in-repo test say so in Notes.
 
 | Feature                                                            | Status                | Evidence                                  | Notes                                                                 |
 | ------------------------------------------------------------------ | --------------------- | ----------------------------------------- | --------------------------------------------------------------------- |
-| Hardening fragment (`harden` / `hardenUser`)                       | 🟢 `FULLY_FUNCTIONAL` | `lib/systemd.nix`; both modules use it    | Lifecycle-key guard throws at eval; MemoryHigh derives from MemoryMax  |
-| Service defaults family (`serviceDefaults*`, `serviceOneshotDefaults*`) | 🟢 `FULLY_FUNCTIONAL` | `lib/systemd/service-defaults.nix`; used by both modules | `*User` variants drop mkForce for Home Manager; no dedicated in-repo test for the `*User` variants |
+| Hardening fragment (`harden` / `hardenUser`)                       | 🟢 `FULLY_FUNCTIONAL` | `lib/systemd.nix`; 3 of 4 modules use it (wifi-failover, boot-mirror, hot-dir-migrate) | Lifecycle-key guard throws at eval; MemoryHigh derives from MemoryMax  |
+| Service defaults family (`serviceDefaults*`, `serviceOneshotDefaults*`) | 🟢 `FULLY_FUNCTIONAL` | `lib/systemd/service-defaults.nix`; used by the same 3 modules | `*User` variants drop mkForce for Home Manager; no dedicated in-repo test for the `*User` variants |
 | Failure routing hooks (`onFailure` / `onFailureP0`)                 | 🟢 `FULLY_FUNCTIONAL` | `lib/systemd/service-defaults.nix:94-104` | Reference `notify-failure@%n.service` templates — consumer must provide them |
 | systemd option helpers (`serviceTypes`)                             | 🟡 `PARTIALLY_FUNCTIONAL` | `lib/types.nix`                        | No in-repo consumer or test; carried for consumer modules             |
 | Port guard (`mkPortGuard`, berth pattern)                           | 🟢 `FULLY_FUNCTIONAL` | `lib/port-guard.nix`                      | Release-verified port handoff; PID start-time identity; no in-repo test |
@@ -56,6 +56,7 @@ SystemNix fleet. Helpers without a dedicated in-repo test say so in Notes.
 | State-dir tmpfiles line (`mkStateDir`)                              | 🟢 `FULLY_FUNCTIONAL` | `lib/default.nix` (`mkStateDir`)          | Trivial generator                                                      |
 | I/O priority tiers (`ioTier`)                                       | 🟢 `FULLY_FUNCTIONAL` | `lib/default.nix` (`ioTier`); contract-pinned by the boot-mirror test (`IOSchedulingPriority = 6`) | Fragments merge via `mkMerge` alongside `harden {}`       |
 | Memory-limited command wrapper (`wrapWithMemoryLimit`)              | 🟢 `FULLY_FUNCTIONAL` | `lib/default.nix` (`wrapWithMemoryLimit`) | For devShells/system packages; NOT for Nix build sandboxes; no in-repo test |
+| Filesystem guard (`mkFilesystem`)                                  | 🟡 `PARTIALLY_FUNCTIONAL` | `lib/filesystems.nix`; consumed by `modules/hot-tier` (fs-options guard travels with its contract check) | Throws on cross-filesystem option contamination (e.g. `discard=async` on ext4); no dedicated in-repo test of the throw |
 
 ## Collection infrastructure (flake)
 
@@ -65,5 +66,5 @@ SystemNix fleet. Helpers without a dedicated in-repo test say so in Notes.
 | Formatting gate (treefmt + alejandra)      | 🟢 `FULLY_FUNCTIONAL` | `flake.nix` (`checks.*.formatting`); `treefmt.nix`           | Nix files only; `dprint.json` for JSON/YAML/Markdown is NOT enforced |
 | Eval-contract test pattern                 | 🟢 `FULLY_FUNCTIONAL` | `tests/boot-mirror.nix` → `checks.x86_64-linux.boot-mirror-contract` | Fixture-host eval + `throwIfNot` chain; no VM needed              |
 | VM test pattern                            | 🟢 `FULLY_FUNCTIONAL` | `tests/wifi-failover.nix` → `checks.x86_64-linux.wifi-failover-vm` | Exercises the real deployed ExecStart binary against a veth pair  |
-| Negative mutation harness                  | 🟢 `FULLY_FUNCTIONAL` | `tests/negative/run.sh` (bootmirror group: green control + 4 mutation legs) | Manual — NOT part of `nix flake check`; wifi-failover legs missing (TODO_LIST) |
+| Negative mutation harness                  | 🟢 `FULLY_FUNCTIONAL` | `tests/negative/run.sh` (bootmirror/hottier/hotdirmigrate groups: 3 green controls + 13 mutation legs = 16 cases) | Manual — NOT part of `nix flake check`; wifi-failover legs missing (TODO_LIST) |
 | Eval-time audit gate modules               | ⚪ `PLANNED`          | Named in the flake description and README charter; no audit module exists under `modules/` | Completes the collection charter; the scan surface already ships in `lib` |

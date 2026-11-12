@@ -32,6 +32,14 @@ Definitions describe how the term is USED here, with where it lives.
 | boot counting               | systemd-boot's `+T` loader-entry suffix scheme: an entry rename per boot attempt, a blessing (suffix strip) once boot-complete.target is reached; boot-mirror reverse-propagates these renames so the mirror never resets a converging counter | `modules/boot-mirror/default.nix`                      |
 | ioTier                      | BFQ I/O priority tier fragments (interactive → maintenance) merged into a unit's serviceConfig alongside `harden {}` | `lib/default.nix` (`ioTier`)                           |
 | omit-on-error rule          | Metric collector discipline: when a source is unreadable, emit only the scrape_errors gauge and exit 0 — an omitted metric fails the alert, a frozen green one phantom-greens it | `lib/default.nix` (`mkMetricTextfileCollector`)        |
+| hot tier                    | Unsnapshotted fast-disk (BTRFS subvolume) mounts for always-churning directories (journald logs, access logs) — churn leaves the snapshot-pinned OS disk entirely | `modules/hot-tier/`                                    |
+| shadow dir                  | The ordinary directory a hot-tier mount shadows: when the hot disk detaches, the mount degrades to it (nofail + device-timeout) and the service keeps running | `modules/hot-tier/`                                    |
+| dropLogsDirectory neutralization | hot-tier setting that mkForce-[]s upstream `*Directory=` attrs — systemd turns those into implicit RequiresMountsFor, defeating wants-not-requires degradation | `modules/hot-tier/`                                 |
+| ownership heal              | The `+`-privileged ExecStartPre chown that restores tmpfiles ownership (mode/user/group) once `*Directory=` creation is neutralized | `modules/hot-tier/`                                    |
+| live-writer guard           | hot-dir-migrate's per-project liveness check: a process with comm `matchComm` holding an fd/cwd under a project's session dir blocks ONLY that project (a blanket name-skip starves convergence on busy hosts) | `modules/hot-dir-migrate/`                             |
+| fresh-write window          | hot-dir-migrate's `freshWriteMinutes`: a session dir with writes newer than the window is skipped — it belongs to a live session, not a stale leftover | `modules/hot-dir-migrate/`                             |
+| depth tripwire              | hot-dir-migrate's `discoveryDepth` WARN: a session dir sitting one level below the discovery cap warns instead of silently staying on the OS disk | `modules/hot-dir-migrate/`                             |
+| contamination guard         | `mkFilesystem`'s cross-filesystem option check: fs-specific mount options (e.g. btrfs `discard=async`) used on another fsType throw at eval — the runtime failure class is mount-fail → local-fs.target → emergency shell | `lib/filesystems.nix`                                  |
 
 ## Bounded contexts
 
