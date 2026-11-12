@@ -170,8 +170,8 @@ entries.
   explicitly 🟡. Remaining −0.5: the CI row is a claim about the future, and
   the two SystemNix-fork divergences are documented only on this side.
 - **Fitness: 8.5/10** (baseline 6.0). A fresh session can run every command
-  in AGENTS verbatim (incl. the app + docs-gates); TODO_LIST is 5 rows, all
-  bounded and evidence-cited; ROADMAP now carries the full parked tier;
+  in AGENTS verbatim (incl. the app + docs-gates); TODO_LIST is 4 rows, all
+  bounded and evidence-cited (counted via row grep at close-out); ROADMAP now carries the full parked tier;
   the report corpus is gated by the docs-gates battery. Remaining −1.5:
   module README option tables still duplicate declarations (drift-guard is
   ROADMAP), and FEATURES' infra section mixes shipped and pending rows in

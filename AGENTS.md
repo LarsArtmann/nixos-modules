@@ -160,6 +160,10 @@ environment override — renaming log lines in `watch.sh` breaks the test.
 - `harden {}` defaults an empty `CapabilityBoundingSet`; anything needing
   caps (e.g. `chown`) must pass them explicitly.
 - CHANGELOG.md follows Keep a Changelog — add an entry for notable changes.
+- SystemNix fork divergences (this side fixed, SystemNix pending): the
+  `parseMemoryBytes` bare-byte fix (`lib/systemd.nix`) and the `watch.sh`
+  GW-comment wording — the standing parity diff must absorb both (CHANGELOG
+  2026-11-12 entries name them).
 - CI (`.github/workflows/check.yml`) runs `nix flake check -L` + the aarch64
   eval pass on every push to master and PR; the negative harness stays manual
   (`nix build --impure` cannot run inside flake checks).
