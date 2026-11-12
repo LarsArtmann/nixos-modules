@@ -69,7 +69,7 @@
                               RequiresMountsFor = svc.unitConfig.RequiresMountsFor or null;
                               ProtectHome = svc.serviceConfig.ProtectHome;
                               ReadWritePaths = svc.serviceConfig.ReadWritePaths;
-                              wantedBy = svc.wantedBy;
+                              inherit (svc) wantedBy;
                               timerOnBootSec = timer.timerConfig.OnBootSec;
                               timerPersistent = timer.timerConfig.Persistent or null;
                             })))))))))))));

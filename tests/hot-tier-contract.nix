@@ -87,12 +87,12 @@
                         "hot-tier contract: caddy-logs mount options must stay exactly the degradation contract"
                         (builtins.toJSON {
                           journaldOrdering = {
-                            after = journald.after;
-                            wants = journald.wants;
+                            inherit (journald) after;
+                            inherit (journald) wants;
                           };
                           caddyWiring = {
-                            after = caddy.after;
-                            wants = caddy.wants;
+                            inherit (caddy) after;
+                            inherit (caddy) wants;
                             LogsDirectory = caddy.serviceConfig.LogsDirectory;
                             ExecStartPre = caddy.serviceConfig.ExecStartPre or [];
                           };

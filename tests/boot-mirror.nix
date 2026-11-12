@@ -53,7 +53,7 @@
                   (builtins.toJSON {
                     PathChanged = pathUnit.pathConfig.PathChanged or null;
                     Unit = pathUnit.pathConfig.Unit or null;
-                    wantedBy = pathUnit.wantedBy;
+                    inherit (pathUnit) wantedBy;
                     ConditionPathIsMountPoint = svc.unitConfig.ConditionPathIsMountPoint or null;
                     mountOptions = fileSystems."/boot-mirror".options;
                     IOSchedulingPriority = svc.serviceConfig.IOSchedulingPriority or null;

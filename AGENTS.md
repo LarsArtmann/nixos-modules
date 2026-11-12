@@ -31,9 +31,11 @@ KEEP=1 bash tests/negative/run.sh            # keep mutated copy for triage
 - `tests/options-json.nix` (→ `checks.*.options-json`) renders each module's
   own options to JSON and proves every declaration resolves inside
   `modules/<name>/` (the path-provenance claim behind paths-not-imports).
-- `dprint.json` configures dprint for JSON/YAML/Markdown/Dockerfile, but the
-  enforced formatting gate (`nix fmt` / `checks.formatting`) is
-  treefmt/alejandra over Nix files only.
+- The formatting gate (`nix fmt` / `checks.formatting`) is treefmt over Nix
+  files: alejandra (style) + deadnix (dead bindings) + statix (idiom).
+  Markdown/JSON/YAML are deliberately NOT formatter-gated: dprint.json was
+  removed 2026-11-12 — its plugins are remote-fetched WASM at runtime, which
+  cannot run inside hermetic flake checks.
 
 ## Flake surface
 

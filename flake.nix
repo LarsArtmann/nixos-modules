@@ -55,7 +55,7 @@
             # VM checks below stay x86_64-only (runNixOSTest qemu guests).
             lib-eval = import ./tests/lib-eval.nix {
               inherit lib pkgs;
-              collectionLib = collectionLib;
+              inherit collectionLib;
             };
             boot-mirror-contract = import ./tests/boot-mirror.nix {
               inherit lib pkgs;

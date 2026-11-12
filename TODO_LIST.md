@@ -34,6 +34,5 @@
 
 | Task                                                             | Status    | Impact | Effort | Evidence                                                                  |
 | ---------------------------------------------------------------- | --------- | ------ | ------ | ------------------------------------------------------------------------- |
-| Decide dprint's role: wire `dprint.json` into treefmt or drop it | 🔴 `TODO` | Low    | 30min  | `dprint.json` configures JSON/YAML/Markdown/Dockerfile but `treefmt.nix` enables only alejandra — nothing enforces dprint |
 | Surface the negative harness as a flake app or devShell command  | 🔴 `TODO` | Low    | 30min  | `tests/negative/run.sh` is invoked by raw path only (`flake.nix` has no app; no devShell exists) |
 | Force a fresh (non-cached) wifi-failover-vm run                   | 🔴 `TODO` | Low    | 15min  | This session's `nix flake check` green for `wifi-failover-vm` was store-substituted (inputs unchanged); a cache-busted rebuild re-proves the VM leg |

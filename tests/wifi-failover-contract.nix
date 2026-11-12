@@ -71,7 +71,7 @@
                 (builtins.toJSON {
                   environment = env;
                   trustedInterfaces = eval.config.networking.firewall.trustedInterfaces;
-                  wantedBy = svc.wantedBy;
+                  inherit (svc) wantedBy;
                   execStart = builtins.toString svc.serviceConfig.ExecStart;
                 })))))));
 in
