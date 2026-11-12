@@ -128,6 +128,31 @@ run_case bootmirror nofail-dropped boot-mirror-contract fail 'stay nofail' \
 run_case bootmirror tier-stripped boot-mirror-contract fail 'background IO tier' \
   'modules/boot-mirror/default.nix' 's|^          ioTier.background$|          { }|'
 
+# ── hottier: the wants-not-requires + *Directory= trap classes ──
+run_case hottier green-control hot-tier-contract pass - \
+  'modules/hot-tier/default.nix' '-'
+run_case hottier wants-dropped hot-tier-contract fail 'must want \(NOT require\) the journal mount' \
+  'modules/hot-tier/default.nix' 's|^            wants = \[(mountUnit m.mountPoint)\];$|            # wants stripped for negative test|'
+run_case hottier neutralization-dropped hot-tier-contract fail 'must neutralize the upstream LogsDirectory' \
+  'modules/hot-tier/default.nix' 's|^                LogsDirectory = lib.mkForce \[\];$|                # neutralization stripped for negative test|'
+run_case hottier heal-renamed hot-tier-contract fail 'ownership-heal chown ExecStartPre must be present' \
+  'modules/hot-tier/default.nix' 's|logdir-own|logdir-mutated|'
+run_case hottier nofail-dropped hot-tier-contract fail 'mount options must stay exactly' \
+  'modules/hot-tier/default.nix' 's|^        "nofail"$|        "nofail-mutated"|'
+
+# ── hotdirmigrate: the live-writer guard, 226/NAMESPACE, phantom-binary,
+#    and boot-gating classes ──
+run_case hotdirmigrate green-control hot-dir-migrate-contract pass - \
+  'modules/hot-dir-migrate/default.nix' '-'
+run_case hotdirmigrate liveness-stripped hot-dir-migrate-contract fail 'liveness sweep must be present' \
+  'modules/hot-dir-migrate/default.nix' 's|pidDir in /proc|pidDir in /procX|'
+run_case hotdirmigrate rwpaths-narrowed hot-dir-migrate-contract fail 'ReadWritePaths must be exactly' \
+  'modules/hot-dir-migrate/default.nix' 's|^              cfg.projectsDir$|              "/projects-mutated"|'
+run_case hotdirmigrate bootgated-restored hot-dir-migrate-contract fail 'must NOT be boot-gated' \
+  'modules/hot-dir-migrate/default.nix' 's|^        unitConfig.RequiresMountsFor = \[cfg.mountPoint\];$|        wantedBy = ["multi-user.target"];\n        unitConfig.RequiresMountsFor = [cfg.mountPoint];|'
+run_case hotdirmigrate flock-dropped hot-dir-migrate-contract fail 'must carry util-linux' \
+  'modules/hot-dir-migrate/default.nix' 's|^          pkgs.util-linux$|          # util-linux stripped|'
+
 say "----"
 say "passed=$passed failed=$failed"
 [ "$failed" -eq 0 ]

@@ -165,7 +165,8 @@ in {
           inherit (m) device fsType;
           options = ["subvol=${m.subvol}"] ++ m.mountOptions;
         };
-      }) mounts
+      })
+      mounts
     ));
 
     # Existence guarantee for the (shadow) mount-point dir — tmpfiles runs
