@@ -81,6 +81,10 @@
               } > $out
               cat $out
             '';
+            options-json = import ./tests/options-json.nix {
+              inherit lib pkgs;
+              modules = nixosModules;
+            };
           }
           // lib.optionalAttrs (system == "x86_64-linux") {
             wifi-failover-vm = pkgs.testers.runNixOSTest (import ./tests/wifi-failover.nix {inherit pkgs;});
