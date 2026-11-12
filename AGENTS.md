@@ -21,8 +21,13 @@ KEEP=1 bash tests/negative/run.sh            # keep mutated copy for triage
 
 - `nix flake check` on x86_64-linux builds the wifi-failover VM test — slow.
   Build individual checks when iterating.
-- aarch64-linux carries the formatting check only (VM + contract checks are
-  x86_64-only).
+- aarch64-linux carries every pure-eval check (formatting, lib-eval, the 4
+  eval-contracts, module-list); only the VM checks are x86_64-only. Prove
+  eval portability with `nix flake check --all-systems --no-build` (building
+  the aarch64 derivations needs aarch64 builders).
+- `tests/lib-eval.nix` (→ `checks.*.lib-eval`) pins the pure lib contracts
+  (harden family, scan surface, generators, serviceTypes, mkFilesystem); its
+  failure messages double as the negative-harness `lib` group markers.
 - `dprint.json` configures dprint for JSON/YAML/Markdown/Dockerfile, but the
   enforced formatting gate (`nix fmt` / `checks.formatting`) is
   treefmt/alejandra over Nix files only.
@@ -138,11 +143,11 @@ environment override — renaming log lines in `watch.sh` breaks the test.
 
 - `tests/negative/run.sh` copies only git-TRACKED files (`git ls-files`) —
   untracked new files silently miss the mutation copies.
-- `tests/*.nix` are functions with two signatures: VM tests take `{pkgs}`
-  (wifi-failover ignores it as `_`) — wifi-failover, hot-tier-journal,
-  hot-tier-caddy, hot-dir-migrate; eval-contract tests take
-  `{lib, pkgs, module}` — boot-mirror, hot-tier-contract,
-  hot-dir-migrate-contract, wifi-failover-contract. All 8 wired in flake.nix.
+- `tests/*.nix` are functions with three signatures: VM tests take `{pkgs}`
+  (wifi-failover ignores it as `_`); eval-contract tests take
+  `{lib, pkgs, module}` (boot-mirror, hot-tier, hot-dir-migrate,
+  wifi-failover); the lib contract test takes `{lib, pkgs, collectionLib}`
+  (lib-eval). All 9 wired in flake.nix.
 - Unit names with dashes: a literal `after = ["boot-mirror.mount"]` names a
   nonexistent unit (systemd escapes dashes: `boot\x2dmirror.mount`). Use
   `unitConfig.RequiresMountsFor`, which implies Requires=+After= on the real
