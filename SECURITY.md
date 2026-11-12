@@ -32,7 +32,8 @@ Please do **not** open public issues for security problems. Report privately ins
 ## Security Practices
 
 - All changes are code-reviewed before merge
-- Automated security scanning runs in CI
+- Automated checks run through `nix flake check` (formatting gate, module
+  introspection, eval contracts, VM tests) — no hosted CI pipeline exists
 - Dependencies are kept up to date
 
 ---

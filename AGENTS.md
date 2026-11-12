@@ -159,3 +159,5 @@ environment override — renaming log lines in `watch.sh` breaks the test.
 - `modules/<name>/README.md` — per-module consumption snippet + pinned
   contracts.
 - `lib/port-guard.nix` header — the berth-pattern port handoff contract.
+- Living docs: `FEATURES.md` (feature inventory), `TODO_LIST.md` (open work),
+  `ROADMAP.md` (direction), `docs/DOMAIN_LANGUAGE.md` (glossary).
