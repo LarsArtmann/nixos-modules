@@ -126,7 +126,7 @@ run_case bootmirror condition-dropped boot-mirror-contract fail 'ConditionPathIs
 run_case bootmirror nofail-dropped boot-mirror-contract fail 'stay nofail' \
   'modules/boot-mirror/default.nix' 's|"nofail"|"nofail-mutated"|'
 run_case bootmirror tier-stripped boot-mirror-contract fail 'background IO tier' \
-  'modules/boot-mirror/default.nix' 's|^      ioTier.background$|      { }|'
+  'modules/boot-mirror/default.nix' 's|^          ioTier.background$|          { }|'
 
 say "----"
 say "passed=$passed failed=$failed"
