@@ -28,6 +28,9 @@ KEEP=1 bash tests/negative/run.sh            # keep mutated copy for triage
 - `tests/lib-eval.nix` (→ `checks.*.lib-eval`) pins the pure lib contracts
   (harden family, scan surface, generators, serviceTypes, mkFilesystem); its
   failure messages double as the negative-harness `lib` group markers.
+- `tests/options-json.nix` (→ `checks.*.options-json`) renders each module's
+  own options to JSON and proves every declaration resolves inside
+  `modules/<name>/` (the path-provenance claim behind paths-not-imports).
 - `dprint.json` configures dprint for JSON/YAML/Markdown/Dockerfile, but the
   enforced formatting gate (`nix fmt` / `checks.formatting`) is
   treefmt/alejandra over Nix files only.

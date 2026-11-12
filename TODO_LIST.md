@@ -29,7 +29,6 @@
 | Fix stale GW-source comment in `watch.sh`                           | 🔴 `TODO` | Med    | 15min  | `modules/wifi-failover/watch.sh:26-27` says the unit injects GW from `config.networking.local.gateway` (SystemNix-era coupling); this repo injects from `services.wifi-failover.gateway` / `networking.defaultGateway` (`modules/wifi-failover/default.nix:37-44`). Coordinate with the SystemNix parity diff — the copies are forked-during-migration |
 | Run the pure-eval checks on aarch64-linux too                       | 🔴 `TODO` | Med    | 30min  | `flake.nix` gates ALL 3 eval-contracts + `module-list` behind `system == "x86_64-linux"`; all are pure eval and portable |
 | Marker-stability pass over archived strikethroughs                  | 🔴 `TODO` | Med    | 15min  | `docs/status/archived/2026-11-12_docs-overhaul.md` was gated pre-move but no dprint pass + re-gate ran (annotate → check-rows → format → check-rows canon) |
-| options.json render check per module                                | 🔴 `TODO` | Med    | 1-2h   | `flake.nix`'s `module-list` records module paths only; the "declared in" provenance claim (path-not-import rationale) is never mechanically proven |
 
 ## Low Impact
 

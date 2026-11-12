@@ -23,14 +23,17 @@
         modules = [path];
       };
       prefix = "services.${name}.";
-      isOwn = o: lib.hasPrefix prefix o.name;
+      # _module.* internals (args/check/freeformType/specialArgs) are declared
+      # by nixpkgs's lib/modules.nix inside every submodule — not module-owned
+      # options; exclude them from both the count and the provenance proof.
+      isOwn = o: lib.hasPrefix prefix o.name && !(lib.hasInfix "._module." o.name);
       docList = lib.optionAttrSetToDocList eval.options;
       own = lib.filter isOwn docList;
       outsideTerritory =
         lib.filter (
           o:
             !(lib.any (
-                d: lib.hasInfix "/modules/${name}/" (toString d)
+                d: lib.hasSuffix "/modules/${name}" (toString d)
               )
               o.declarations)
         )
@@ -66,8 +69,8 @@ in
     passAsFile = ["summaryText"];
     inherit jsons;
   } ''
-    cp "$summaryTextPath" $out
     mkdir -p $out/options
+    cp "$summaryTextPath" $out/summary.txt
     for j in $jsons; do cp "$j" "$out/options/$(basename "$j")"; done
     echo "options-json: $summaryText" >&2
   ''
