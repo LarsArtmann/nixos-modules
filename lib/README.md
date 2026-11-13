@@ -38,5 +38,8 @@ legs guard against value drift between the copies in the meantime.
 - `mkDesktopNotifyService` harden-call shape (mkMerge-wrapper-as-args →
   plain attrset union) — CLOSED both sides 2026-11-13, found by the
   collection's lib-eval contracts (T4).
-- `watch.sh` GW-comment wording — OPEN: comment-only, the SystemNix copy's
-  wording is locally true for its wiring (SUPERB plan T6 blesses or absorbs).
+- `watch.sh` GW-comment wording — ABSORBED 2026-11-13: SystemNix no longer
+  carries a copy at all (its wifi-failover module is fully delegated to this
+  collection's flake input, rev-pinned in its lock; only the fleet-specific
+  gateway feed `networking.local.gateway` remains SystemNix-side). No open
+  divergences remain.

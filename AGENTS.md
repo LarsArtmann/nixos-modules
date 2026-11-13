@@ -169,14 +169,15 @@ environment override — renaming log lines in `watch.sh` breaks the test.
 - `harden {}` defaults an empty `CapabilityBoundingSet`; anything needing
   caps (e.g. `chown`) must pass them explicitly.
 - CHANGELOG.md follows Keep a Changelog — add an entry for notable changes.
-- SystemNix fork divergences: only the `watch.sh` GW-comment wording remains
-  unabsorbed — `parseMemoryBytes` AND the `mkDesktopNotifyService`
-  harden-call shape were fixed BOTH sides 2026-11-13 (SystemNix carries the
-  identical fixes + a `lib-parse-memory` regression check). SystemNix
-  `flake.lib` anomaly (pre-existing, flagged to owner): calling `harden`
-  through the `flake.lib` output fails on `lib.genAttrs` at the lifecycle
-  guard — import the fleet lib via `root + "/lib"` with the perSystem lib
-  instead (their checks' house idiom).
+- SystemNix fork status: ZERO open divergences — `parseMemoryBytes` AND the
+  `mkDesktopNotifyService` harden-call shape were fixed BOTH sides
+  2026-11-13, and the `watch.sh` comment divergence dissolved when SystemNix
+  delegated its wifi-failover module wholesale to this collection's flake
+  input (no SystemNix copy remains; only the `networking.local.gateway`
+  feed lives there). SystemNix `flake.lib` anomaly (pre-existing, flagged
+  to owner): calling `harden` through the `flake.lib` output fails on
+  `lib.genAttrs` at the lifecycle guard — import the fleet lib via
+  `root + "/lib"` with the perSystem lib instead (their checks' house idiom).
 - CI (`.github/workflows/check.yml`) runs `nix flake check -L` + the aarch64
   eval pass on every push to master and PR; the negative harness stays manual
   (`nix build --impure` cannot run inside flake checks). First run
