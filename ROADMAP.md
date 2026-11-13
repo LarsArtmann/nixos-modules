@@ -46,7 +46,10 @@ Raw ideas:
   re-open only if a real cross-layer drift incident occurs. The options-
   TABLE drift guard (README options vs options-json) remains separate and
   viable — see its own bullet.
-- Module README options-table drift guard (same drift class as above)
+- Docs automation: options tables in module READMEs are now GUARDED
+  (`checks.*.options-readme-drift`, shipped 2026-11-13 as SUPERB T11 — the
+  tables themselves were added then, rendered from options-json); the
+  remaining idea is auto-GENERATING them wholesale
 - boot-mirror runtime VM leg — the sync script's bootctl/rsync/diff path has
   never executed inside this repo's test net
 - Renovate app for flake inputs (the nixpkgs unstable pin) — owner opt-in:

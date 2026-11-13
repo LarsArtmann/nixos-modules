@@ -65,7 +65,7 @@
         pkgs.btrfs-progs
         pkgs.e2fsprogs
         pkgs.util-linux
-      ];
+      ]; # udevadm (settle + label wait) lives in the systemd package
       script = ''
         if ! blkid /dev/vdb | grep -q 'LABEL="tlc"'; then
           mkfs.btrfs -f -L tlc /dev/vdb
@@ -77,6 +77,16 @@
         fi
         chattr +C /tlc-top/${subvol}
         umount /tlc-top
+        # mkfs can finish before udev publishes the by-label symlink; the
+        # mount unit's 5s device-timeout + nofail would then silently SKIP
+        # the mount (the 2026-11-13 loaded-runner failure class — caddy's
+        # VM proved it; this test shares the scaffolding). Guarantee the
+        # label device exists before the mount starts ordering.
+        udevadm settle
+        for i in $(seq 1 20); do
+          [ -e /dev/disk/by-label/tlc ] && break
+          sleep 1
+        done
       '';
     };
   };
