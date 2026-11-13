@@ -31,8 +31,12 @@ nix build --rebuild -L .#checks.x86_64-linux.module-list  # re-EXECUTE a
   eval portability with `nix flake check --all-systems --no-build` (building
   the aarch64 derivations needs aarch64 builders).
 - `tests/lib-eval.nix` (→ `checks.*.lib-eval`) pins the pure lib contracts
-  (harden family, scan surface, generators, serviceTypes, mkFilesystem); its
-  failure messages double as the negative-harness `lib` group markers.
+  (76: harden family, scan surface, generators, serviceTypes, mkFilesystem,
+  mkStateDir, mkSecretCheck, mkDesktopNotifyService, wrapWithMemoryLimit,
+  ioTier); its failure messages double as the negative-harness `lib` group
+  markers. It has found two real bugs (parseMemoryBytes bare-byte crash;
+  mkDesktopNotifyService's mkMerge-wrapper-as-harden-args shape — fixed both
+  sides 2026-11-13).
 - `tests/options-json.nix` (→ `checks.*.options-json`) renders each module's
   own options to JSON and proves every declaration resolves inside
   `modules/<name>/` (the path-provenance claim behind paths-not-imports).
@@ -166,12 +170,13 @@ environment override — renaming log lines in `watch.sh` breaks the test.
   caps (e.g. `chown`) must pass them explicitly.
 - CHANGELOG.md follows Keep a Changelog — add an entry for notable changes.
 - SystemNix fork divergences: only the `watch.sh` GW-comment wording remains
-  unabsorbed — `parseMemoryBytes` was fixed BOTH sides 2026-11-13 (SystemNix
-  carries the identical bare-byte fix + a `lib-parse-memory` regression
-  check). SystemNix `flake.lib` anomaly (pre-existing, flagged to owner):
-  calling `harden` through the `flake.lib` output fails on `lib.genAttrs`
-  at the lifecycle guard — import the fleet lib via `root + "/lib"` with
-  the perSystem lib instead (their checks' house idiom).
+  unabsorbed — `parseMemoryBytes` AND the `mkDesktopNotifyService`
+  harden-call shape were fixed BOTH sides 2026-11-13 (SystemNix carries the
+  identical fixes + a `lib-parse-memory` regression check). SystemNix
+  `flake.lib` anomaly (pre-existing, flagged to owner): calling `harden`
+  through the `flake.lib` output fails on `lib.genAttrs` at the lifecycle
+  guard — import the fleet lib via `root + "/lib"` with the perSystem lib
+  instead (their checks' house idiom).
 - CI (`.github/workflows/check.yml`) runs `nix flake check -L` + the aarch64
   eval pass on every push to master and PR; the negative harness stays manual
   (`nix build --impure` cannot run inside flake checks). First run

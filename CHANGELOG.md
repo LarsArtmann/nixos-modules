@@ -4,7 +4,7 @@ All notable changes to the collection are documented here. The format follows [K
 
 ---
 
-## [0.1.0] - 2026-11-12
+## [0.1.0](https://github.com/LarsArtmann/nixos-modules/releases/tag/v0.1.0) - 2026-11-12
 
 First tagged release: the collection's trust floor. 4 modules (wifi-failover,
 boot-mirror, hot-tier, hot-dir-migrate) extracted from SystemNix with

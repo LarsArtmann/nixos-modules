@@ -74,6 +74,10 @@ Contributions follow the [Design rules](#design-rules) above; every module
 change lands with its contract check and (where behavior is runtime-visible)
 VM + negative-mutation legs.
 
+Version bumps: wrap new CHANGELOG entries under `## [x.y.z] - date`, commit,
+tag annotated (`git tag -a vx.y.z`), push `--follow-tags`, then re-point
+SystemNix's flake input at the tag.
+
 ## License
 
 [MIT](LICENSE) © Lars Artmann

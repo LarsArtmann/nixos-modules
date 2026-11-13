@@ -30,3 +30,13 @@ helper-by-helper as consumers migrate to the collection module imports; the
 final kill (re-pointing SystemNix `lib/default.nix` at this lib via the flake
 input) happens when the last consumer moves. Parity diffs + negative-test
 legs guard against value drift between the copies in the meantime.
+
+**Divergence ledger (the standing parity diff must absorb or bless these):**
+
+- `parseMemoryBytes` bare-byte fix — CLOSED both sides 2026-11-13 (SystemNix
+  carries the identical fix + a `lib-parse-memory` regression check).
+- `mkDesktopNotifyService` harden-call shape (mkMerge-wrapper-as-args →
+  plain attrset union) — CLOSED both sides 2026-11-13, found by the
+  collection's lib-eval contracts (T4).
+- `watch.sh` GW-comment wording — OPEN: comment-only, the SystemNix copy's
+  wording is locally true for its wiring (SUPERB plan T6 blesses or absorbs).

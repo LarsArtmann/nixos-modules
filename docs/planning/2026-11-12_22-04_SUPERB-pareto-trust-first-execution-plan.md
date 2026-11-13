@@ -1,5 +1,12 @@
 # SUPERB Pareto plan — trust-first execution (2026-11-12 22:04)
 
+> **EXECUTED 2026-11-12/13 — 18/18 tasks COMPLETE and VERIFIED.** Full flake
+> check green, negative harness green at every step, docs-gates 5/5, CI
+> verified green (run 43338694884 after the first-run fix), tag `v0.1.0`
+> pushed. Execution record: CHANGELOG "trust-floor round" → "post-tag
+> close-out" entries; rescore in the archived 00:25 report; successor plan:
+> `2026-11-13_01-19_SUPERB-release-hardening-fleet-bridge.md`.
+
 First plan in `docs/planning/` (no prior plans, no baseline). Input backlog:
 `TODO_LIST.md` (12 rows at plan time) + ROADMAP parked items + owner-gated
 decisions from `docs/status/2026-11-12_21-40_session-docs-overhaul-self-review.md`.
