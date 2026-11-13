@@ -55,8 +55,12 @@
     })
     modules;
 
+  # Provenance violations only. ownCount == 0 is NOT broken: assert-only
+  # modules (the A1a audit gates) legitimately declare zero options, and a
+  # module with no options has no provenance to lose — an import-applied or
+  # re-exported option ALWAYS shows up as outside-territory instead.
   broken =
-    lib.filter (m: m.ownCount == 0 || m.outsideCount > 0) perModule;
+    lib.filter (m: m.outsideCount > 0) perModule;
   totalOptions = lib.foldl' (acc: m: acc + m.ownCount) 0 perModule;
   summary =
     if broken != []

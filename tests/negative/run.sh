@@ -227,7 +227,7 @@ group_tmpcleaner() {
 	run_case tmpcleaner detection-neutered tmp-cleaner-audit-contract fail 'must flag an inline /tmp' \
 		'modules/tmp-cleaner-audit/default.nix' 's|"/tmp/\*"|"/tmpMutated/*"|'
 	run_case tmpcleaner exemption-broken tmp-cleaner-audit-contract fail 'the systemd-private exclusion form must pass' \
-		'tests/tmp-cleaner-audit-contract.nix' 's|\*systemd-private-\*|*systemd-private-mutated-*|'
+		'tests/tmp-cleaner-audit-contract.nix' 's|\*systemd-private-\*|*privatX-*|'
 }
 
 group_shapeaudit() {
