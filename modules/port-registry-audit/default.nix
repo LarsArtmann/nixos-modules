@@ -53,11 +53,10 @@
   byPort =
     lib.foldl'
     (
-      acc: name:
-        let
-          port = toString cfg.registry.${name};
-        in
-          acc // {${port} = (acc.${port} or []) ++ [name];}
+      acc: name: let
+        port = toString cfg.registry.${name};
+      in
+        acc // {${port} = (acc.${port} or []) ++ [name];}
     )
     {}
     (lib.attrNames cfg.registry);
@@ -72,26 +71,25 @@
 
   # tryEval: a unit whose Exec text cannot be coerced (exotic
   # self-referential config) must never break eval — it is skipped.
-  offenders = lib.filterAttrs (
-    _name: svc:
-    let
-      text = builtins.tryEval (unitExecText svc);
-      unregistered =
-        if !text.success
-        then []
-        else lib.subtractLists allowedPorts (extractPortLiterals text.value);
-    in
-      unregistered != []
-  ) config.systemd.services;
+  offenders =
+    lib.filterAttrs (
+      _name: svc: let
+        text = builtins.tryEval (unitExecText svc);
+        unregistered =
+          if !text.success
+          then []
+          else lib.subtractLists allowedPorts (extractPortLiterals text.value);
+      in
+        unregistered != []
+    )
+    config.systemd.services;
 
   offenderReport = lib.concatStringsSep "\n" (
     lib.mapAttrsToList (
-      name: svc:
-      let
+      name: svc: let
         text = builtins.tryEval (unitExecText svc);
         unregistered = lib.subtractLists allowedPorts (extractPortLiterals text.value);
-      in
-        "  ${name}: ${lib.concatStringsSep ", " (map toString unregistered)}"
+      in "  ${name}: ${lib.concatStringsSep ", " (map toString unregistered)}"
     )
     offenders
   );

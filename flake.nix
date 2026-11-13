@@ -89,6 +89,10 @@
               inherit lib pkgs;
               module = ./modules/systemd-shape-audit;
             };
+            port-registry-audit-contract = import ./tests/port-registry-audit-contract.nix {
+              inherit lib pkgs;
+              module = ./modules/port-registry-audit;
+            };
             module-list = pkgs.runCommand "module-list" {} ''
               # Forces evaluation of every discovered module path and records the
               # public surface; a change here shows up as a check-input diff.

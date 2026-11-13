@@ -26,7 +26,7 @@ SYSTEM="$(uname -m)-linux"
 WORK="$(mktemp -d "${XDG_CACHE_HOME:-$HOME/.cache}/negative-collection.XXXXXX")"
 [ "${KEEP:-0}" = "1" ] || trap 'rm -rf "$WORK"' EXIT
 
-ALL_GROUPS="bootmirror hottier hotdirmigrate wififailover timeoutaudit startlimit tmpcleaner shapeaudit lib optionsjson"
+ALL_GROUPS="bootmirror hottier hotdirmigrate wififailover timeoutaudit startlimit tmpcleaner shapeaudit portregistry lib optionsjson"
 
 if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
 	sed -n 's/^# \?//p' "$0" | sed -n '2,30p'
@@ -116,7 +116,7 @@ run_case() {
 	esac
 }
 
-ALL_GROUPS="bootmirror hottier hotdirmigrate wififailover timeoutaudit startlimit tmpcleaner shapeaudit lib optionsjson"
+ALL_GROUPS="bootmirror hottier hotdirmigrate wififailover timeoutaudit startlimit tmpcleaner shapeaudit portregistry lib optionsjson"
 
 # ── bootmirror: the 2026-10-17 gen-922 stale-boot class ──
 # These legs moved from SystemNix scripts/negative-test-lints.sh when the
@@ -231,16 +231,30 @@ group_tmpcleaner() {
 }
 
 group_shapeaudit() {
-	run_case shapeaudit green-control systemd-shape-audit-contract pass - \
-		'modules/systemd-shape-audit/default.nix' '-'
-	run_case shapeaudit class1-neutered systemd-shape-audit-contract fail 'Type=oneshot combined with an invalid Restart' \
-	'modules/systemd-shape-audit/default.nix' 's|^    "always"$|    "always-mutated"|'
+run_case shapeaudit green-control systemd-shape-audit-contract pass - \
+	'modules/systemd-shape-audit/default.nix' '-'
+run_case shapeaudit class1-neutered systemd-shape-audit-contract fail 'Type=oneshot combined with an invalid Restart' \
+'modules/systemd-shape-audit/default.nix' 's|^    "always"$|    "always-mutated"|'
 run_case shapeaudit class7-neutered systemd-shape-audit-contract fail 'unbounded TimeoutStartSec' \
-	'modules/systemd-shape-audit/default.nix' 's|"multi-user.target"|"multi-user-mutated.target"|'
+'modules/systemd-shape-audit/default.nix' 's|"multi-user.target"|"multi-user-mutated.target"|'
 run_case shapeaudit class9-neutered systemd-shape-audit-contract fail 'nested inside unitConfig' \
-	'modules/systemd-shape-audit/default.nix' 's|^    "TimeoutStartSec"$|    "TimeoutStartSec-mutated"|'
-	run_case shapeaudit class1-fixture-stripped systemd-shape-audit-contract fail 'class marker missing' \
-		'tests/systemd-shape-audit-contract.nix' 's|Restart = "always";|Restart = "no";|'
+'modules/systemd-shape-audit/default.nix' 's|^    "TimeoutStartSec"$|    "TimeoutStartSec-mutated"|'
+run_case shapeaudit class1-fixture-stripped systemd-shape-audit-contract fail 'class marker missing' \
+	'tests/systemd-shape-audit-contract.nix' 's|Restart = "always";|Restart = "no";|'
+}
+
+# ── portregistry: the never-hardcode-localhost:PORT class ──
+group_portregistry() {
+run_case portregistry green-control port-registry-audit-contract pass - \
+	'modules/port-registry-audit/default.nix' '-'
+run_case portregistry membership-neutered port-registry-audit-contract fail 'membership half must flag the offender' \
+	'modules/port-registry-audit/default.nix' 's|assertion = offenders == {};|assertion = true;|'
+run_case portregistry collision-neutered port-registry-audit-contract fail 'collision half must name both claimants' \
+	'modules/port-registry-audit/default.nix' 's|builtins.length names > 1|builtins.length names > 99|'
+run_case portregistry escape-broken port-registry-audit-contract fail 'allowPorts must silence' \
+	'modules/port-registry-audit/default.nix' 's|++ cfg.allowPorts|++ []|'
+run_case portregistry fixture-stripped port-registry-audit-contract fail 'membership half must flag the offender' \
+	'tests/port-registry-audit-contract.nix' 's|--port 8150|--port 8099|'
 }
 pids=()
 for g in $ALL_GROUPS; do
