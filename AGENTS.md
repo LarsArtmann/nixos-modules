@@ -166,6 +166,11 @@ environment override — renaming log lines in `watch.sh` breaks the test.
 
 ## Gotchas
 
+- Nix `[f x]` is a TWO-element list (function + arg) — an application
+  inside a list literal needs parens: `[(f x)]`. The same phantom-falsehood
+  family: `f x.y` parses as `f (x.y)`, never `(f x).y` — parenthesize
+  selects over applications. (Both cost debugging hours 2026-11-13; the
+  misparse is invisible to every linter — the AST IS the misparse.)
 - `tests/negative/run.sh` copies only git-TRACKED files (`git ls-files`) —
   untracked new files silently miss the mutation copies.
 - `tests/*.nix` are functions with three signatures: VM tests take `{pkgs}`
