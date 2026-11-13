@@ -91,6 +91,12 @@
             tests-wiring = import ./tests/wiring.nix {
               inherit lib pkgs;
             };
+            # README option-table drift guard: each module's ## Options
+            # table names exactly the declared option surface.
+            options-readme-drift = import ./tests/readme-drift.nix {
+              inherit lib pkgs;
+              modules = nixosModules;
+            };
           }
           // lib.optionalAttrs (system == "x86_64-linux") {
             wifi-failover-vm = pkgs.testers.runNixOSTest (import ./tests/wifi-failover.nix {inherit pkgs;});

@@ -38,6 +38,24 @@ services.hot-tier = {
 };
 ```
 
+## Options
+
+| Option                                       | Type     | Default        | Notes                                    |
+| -------------------------------------------- | -------- | -------------- | ---------------------------------------- |
+| `enable`                                     | bool     | `false`        | inert until enabled                      |
+| `mounts`                                     | attrs    | `{}`           | one hot-disk mount instance per attr     |
+| `mounts.<name>.device`                       | str      | (required)     | e.g. `/dev/disk/by-label/hot`            |
+| `mounts.<name>.subvol`                       | str      | (required)     | btrfs subvolume on the hot disk          |
+| `mounts.<name>.mountPoint`                   | str      | (required)     | where the subvol mounts                  |
+| `mounts.<name>.fsType`                       | str      | `"btrfs"`      |                                          |
+| `mounts.<name>.mountOptions`                 | list of str | `["noatime" "nodiscard" "space_cache=v2" "nofail" "x-systemd.device-timeout=5s"]` | degradation contract |
+| `mounts.<name>.tmpfilesMode`                 | str      | `"0755"`       | shadow-dir mode                          |
+| `mounts.<name>.tmpfilesUser`                 | str      | `"root"`       | shadow-dir owner                         |
+| `mounts.<name>.tmpfilesGroup`                | str      | `"root"`       | shadow-dir group                         |
+| `mounts.<name>.services`                     | attrs    | `{}`           | services riding this mount               |
+| `mounts.<name>.services.<name>.dropLogsDirectory` | bool | `false`      | neutralize upstream `LogsDirectory`      |
+| `mounts.<name>.services.<name>.healOwnership` | bool    | `true`         | the `+`-privileged chown heal            |
+
 ## Contract (mutation-proven in `tests/negative/`)
 
 - Mount options default to `nofail` + `x-systemd.device-timeout=5s`: a
