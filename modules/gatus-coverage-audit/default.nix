@@ -56,8 +56,7 @@
     (
       lib.concatLists (
         lib.mapAttrsToList (
-          name: svc:
-          let
+          name: svc: let
             t = builtins.tryEval (unitExecText svc);
           in
             if !t.success
@@ -84,7 +83,11 @@
     parts = builtins.split "[:]([0-9]{2,5})([^0-9]|$)" url;
     groups =
       builtins.filter (g: builtins.isString g && builtins.match "[0-9]+" g != null)
-      (lib.flatten (map (x: if builtins.isList x then x else []) parts));
+      (lib.flatten (map (x:
+        if builtins.isList x
+        then x
+        else [])
+      parts));
   in
     map lib.toInt groups;
   coveredPorts = lib.unique (lib.concatMap urlPorts gatusUrls);
@@ -100,8 +103,7 @@
     lib.concatLists
     (
       map (
-        url:
-        let
+        url: let
           isLoopback = builtins.match "(http|https|tcp)://(127\\.0\\.0\\.1|localhost).*" url != null;
         in
           lib.optionals isLoopback (urlPorts url)
@@ -139,31 +141,30 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    assertions =
-      lib.optionals gatusEnabled [
-        {
-          assertion = uncovered == [];
-          message = ''
-            gatus-coverage-audit: registered port(s) referenced by live units but never probed by any gatus endpoint:
-            ${lib.concatStringsSep "\n" uncoveredReport}
-            "Every new service MUST be monitored — silent failures are unacceptable."
-            Fix: add a gatus endpoint for the port, or — for a justified
-            exemption (prohibited-to-probe socket, vHost-monitored backend) —
-            extend:
-              services.gatus-coverage-audit.allowPorts = [ <port> ];
-            with a comment explaining why a direct probe is wrong.
-          '';
-        }
-        {
-          assertion = unregisteredLoopback == [];
-          message = ''
-            gatus-coverage-audit: loopback gatus URL(s) use unregistered port(s):
-            ${lib.concatStringsSep ", " (map toString unregisteredLoopback)}
-            Ports OUR services serve must live in the registry so collisions
-            are caught at eval time. External upstream checks (dot.mullvad.net,
-            1.1.1.1, ...) are exempt by design.
-          '';
-        }
-      ];
+    assertions = lib.optionals gatusEnabled [
+      {
+        assertion = uncovered == [];
+        message = ''
+          gatus-coverage-audit: registered port(s) referenced by live units but never probed by any gatus endpoint:
+          ${lib.concatStringsSep "\n" uncoveredReport}
+          "Every new service MUST be monitored — silent failures are unacceptable."
+          Fix: add a gatus endpoint for the port, or — for a justified
+          exemption (prohibited-to-probe socket, vHost-monitored backend) —
+          extend:
+            services.gatus-coverage-audit.allowPorts = [ <port> ];
+          with a comment explaining why a direct probe is wrong.
+        '';
+      }
+      {
+        assertion = unregisteredLoopback == [];
+        message = ''
+          gatus-coverage-audit: loopback gatus URL(s) use unregistered port(s):
+          ${lib.concatStringsSep ", " (map toString unregisteredLoopback)}
+          Ports OUR services serve must live in the registry so collisions
+          are caught at eval time. External upstream checks (dot.mullvad.net,
+          1.1.1.1, ...) are exempt by design.
+        '';
+      }
+    ];
   };
 }

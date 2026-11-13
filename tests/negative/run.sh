@@ -26,7 +26,7 @@ SYSTEM="$(uname -m)-linux"
 WORK="$(mktemp -d "${XDG_CACHE_HOME:-$HOME/.cache}/negative-collection.XXXXXX")"
 [ "${KEEP:-0}" = "1" ] || trap 'rm -rf "$WORK"' EXIT
 
-ALL_GROUPS="bootmirror hottier hotdirmigrate wififailover timeoutaudit startlimit tmpcleaner shapeaudit portregistry lib optionsjson"
+ALL_GROUPS="bootmirror hottier hotdirmigrate wififailover timeoutaudit startlimit tmpcleaner shapeaudit portregistry gatuscoverage lib optionsjson"
 
 if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
 	sed -n 's/^# \?//p' "$0" | sed -n '2,30p'
@@ -116,7 +116,7 @@ run_case() {
 	esac
 }
 
-ALL_GROUPS="bootmirror hottier hotdirmigrate wififailover timeoutaudit startlimit tmpcleaner shapeaudit portregistry lib optionsjson"
+ALL_GROUPS="bootmirror hottier hotdirmigrate wififailover timeoutaudit startlimit tmpcleaner shapeaudit portregistry gatuscoverage lib optionsjson"
 
 # ── bootmirror: the 2026-10-17 gen-922 stale-boot class ──
 # These legs moved from SystemNix scripts/negative-test-lints.sh when the
@@ -255,6 +255,18 @@ run_case portregistry escape-broken port-registry-audit-contract fail 'allowPort
 	'modules/port-registry-audit/default.nix' 's|++ cfg.allowPorts|++ []|'
 run_case portregistry fixture-stripped port-registry-audit-contract fail 'membership half must flag the offender' \
 	'tests/port-registry-audit-contract.nix' 's|--port 8150|--port 8099|'
+}
+
+# ── gatuscoverage: the every-service-monitored class ──
+group_gatuscoverage() {
+run_case gatuscoverage green-control gatus-coverage-audit-contract pass - \
+	'modules/gatus-coverage-audit/default.nix' '-'
+run_case gatuscoverage classA-neutered gatus-coverage-audit-contract fail 'class A must name the uncovered port' \
+	'modules/gatus-coverage-audit/default.nix' 's|uncovered = lib.subtractLists (coveredPorts ++ cfg.allowPorts) inUsePorts;|uncovered = [];|'
+run_case gatuscoverage classB-neutered gatus-coverage-audit-contract fail 'class B must flag' \
+	'modules/gatus-coverage-audit/default.nix' 's|unregisteredLoopback = lib.unique (lib.subtractLists allowed loopbackUrlPorts);|unregisteredLoopback = [];|'
+run_case gatuscoverage fixture-stripped gatus-coverage-audit-contract fail 'class A must name the uncovered port' \
+	'tests/gatus-coverage-audit-contract.nix' 's|tcp://dot.mullvad.net:853|http://127.0.0.1:8099/health|'
 }
 pids=()
 for g in $ALL_GROUPS; do

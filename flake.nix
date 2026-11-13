@@ -93,6 +93,10 @@
               inherit lib pkgs;
               module = ./modules/port-registry-audit;
             };
+            gatus-coverage-audit-contract = import ./tests/gatus-coverage-audit-contract.nix {
+              inherit lib pkgs;
+              module = ./modules/gatus-coverage-audit;
+            };
             module-list = pkgs.runCommand "module-list" {} ''
               # Forces evaluation of every discovered module path and records the
               # public surface; a change here shows up as a check-input diff.
