@@ -44,7 +44,7 @@ nix eval --impure --raw --expr "
       forkLib = import \"$SYSTEMNIX/lib\" lib;
     };
   in builtins.toJSON verdict
-" > "$OUT/verdict.json"
+" >"$OUT/verdict.json"
 
 summary="$(jq -r 'if .ok then "parity-diff: OK — \(.probes | length) helper probes semantically identical (collection lib vs SystemNix fork)" else .error end' "$OUT/verdict.json")"
 

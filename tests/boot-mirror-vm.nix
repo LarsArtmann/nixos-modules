@@ -18,13 +18,10 @@
 # vdb as vfat BEFORE the mount is retried; esp-seed writes the loader tree
 # the production builder would own. nofail + condition-skip make every
 # ordering safe: an early trigger skips, the test re-triggers after mount.
-{
-  pkgs,
-}: {
+_: {
   name = "boot-mirror";
 
   nodes.machine = {
-    config,
     lib,
     pkgs,
     ...

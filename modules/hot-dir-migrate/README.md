@@ -29,23 +29,23 @@ services.hot-dir-migrate = {
 
 ## Options
 
-| Option               | Type    | Default                          | Notes                                  |
-| -------------------- | ------- | -------------------------------- | -------------------------------------- |
-| `enable`             | bool    | `false`                          | inert until enabled                    |
-| `unitName`           | str     | `"hot-dir-migrate"`              |                                        |
-| `dirName`            | str     | `".crush"`                       | source dir name per project            |
-| `dbName`             | str     | `"crush.db"`                     | the live-writer database file          |
-| `destName`           | str     | `"crush"`                        | destination name on the hot disk       |
-| `matchComm`          | str     | `"crush"`                        | /proc comm match for the live-writer guard |
-| `projectsDir`        | str     | (required)                       | e.g. `/home/lars/projects`             |
-| `mountPoint`         | str     | `"/mnt/hot"`                     | hot-disk mount root                    |
-| `ownerUser`          | str     | `"root"`                         | migrated-file ownership                |
-| `ownerGroup`         | str     | `"users"`                        | migrated-file group                    |
-| `discoveryDepth`     | int     | `3`                              | depth tripwire                         |
-| `freshWriteMinutes`  | int     | `10`                             | fresh-write skip window                |
-| `dryRunEnvVar`       | str     | `"HOT_DIR_MIGRATE_DRY_RUN"`      | opt-out canary                         |
-| `timerOnBootSec`     | str     | `"2min"`                         | boot convergence                       |
-| `timerOnCalendar`    | str     | `"*-*-* 04:10:00"`               | nightly pass                           |
+| Option              | Type | Default                     | Notes                                      |
+| ------------------- | ---- | --------------------------- | ------------------------------------------ |
+| `enable`            | bool | `false`                     | inert until enabled                        |
+| `unitName`          | str  | `"hot-dir-migrate"`         |                                            |
+| `dirName`           | str  | `".crush"`                  | source dir name per project                |
+| `dbName`            | str  | `"crush.db"`                | the live-writer database file              |
+| `destName`          | str  | `"crush"`                   | destination name on the hot disk           |
+| `matchComm`         | str  | `"crush"`                   | /proc comm match for the live-writer guard |
+| `projectsDir`       | str  | (required)                  | e.g. `/home/lars/projects`                 |
+| `mountPoint`        | str  | `"/mnt/hot"`                | hot-disk mount root                        |
+| `ownerUser`         | str  | `"root"`                    | migrated-file ownership                    |
+| `ownerGroup`        | str  | `"users"`                   | migrated-file group                        |
+| `discoveryDepth`    | int  | `3`                         | depth tripwire                             |
+| `freshWriteMinutes` | int  | `10`                        | fresh-write skip window                    |
+| `dryRunEnvVar`      | str  | `"HOT_DIR_MIGRATE_DRY_RUN"` | opt-out canary                             |
+| `timerOnBootSec`    | str  | `"2min"`                    | boot convergence                           |
+| `timerOnCalendar`   | str  | `"*-*-* 04:10:00"`          | nightly pass                               |
 
 ## Contract (VM-tested + mutation-proven)
 

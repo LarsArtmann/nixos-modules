@@ -39,14 +39,14 @@ wiring is consumer-side (layer it at the delegation site).
 
 ## Options
 
-| Option                       | Type             | Default                         | Notes                          |
-| ---------------------------- | ---------------- | ------------------------------- | ------------------------------ |
-| `enable`                     | bool             | `false`                         | inert until enabled            |
-| `device`                     | null or string   | `null`                          | mirror ESP; null = module off  |
-| `sourceEsp`                  | str              | `"/boot"`                       | watched source ESP             |
-| `mountPoint`                 | str              | `"/boot-mirror"`                | mirror mountpoint              |
-| `fsType`                     | str              | `"vfat"`                        | ESP filesystem                 |
-| `mountOptions`               | list of str      | `["fmask=0077" "dmask=0077" "nofail"]` | nofail is contract-pinned |
+| Option         | Type           | Default                                | Notes                         |
+| -------------- | -------------- | -------------------------------------- | ----------------------------- |
+| `enable`       | bool           | `false`                                | inert until enabled           |
+| `device`       | null or string | `null`                                 | mirror ESP; null = module off |
+| `sourceEsp`    | str            | `"/boot"`                              | watched source ESP            |
+| `mountPoint`   | str            | `"/boot-mirror"`                       | mirror mountpoint             |
+| `fsType`       | str            | `"vfat"`                               | ESP filesystem                |
+| `mountOptions` | list of str    | `["fmask=0077" "dmask=0077" "nofail"]` | nofail is contract-pinned     |
 
 ## Contract (eval-pinned)
 
