@@ -146,13 +146,13 @@ entries.
 
 | # | Task | Impact | Effort | Category | Route |
 |---|------|--------|--------|----------|-------|
-| 1 | Verify CI first run on next push; flip FEATURES CI row 🟡→🟢 | Med | S | Infra | TODO_LIST |
-| 2 | Apply parseMemoryBytes fix to the SystemNix fork | Med | S | Quality | TODO_LIST (BLOCKED: external repo) |
-| 3 | Absorb the watch.sh comment divergence in the SystemNix parity diff | Low | S | Quality | TODO_LIST (BLOCKED: external repo) |
-| 4 | Identify owner/generator of `.config/metadata.yaml` (may docs populate tags?) | Low | S | Process | TODO_LIST (BLOCKED: owner question) |
-| 5 | Push v0.1.0 tag + master to origin (explicit owner request required) | Med | S | Process | owner decision |
-| 6 | Standing SystemNix parity diff until the kill | Med | M | Quality | ROADMAP theme 1 |
-| 7 | dual-wan migration; audit-gate modules; boot-mirror contract single-sourcing; options-table drift guard; boot-mirror VM leg; renovate | Med | L | Feature/Quality/Infra | ROADMAP themes 2-3 |
+~~| 1 | Verify CI first run on next push; flip FEATURES CI row 🟡→🟢 | Med | S | Infra | TODO_LIST |~~ OPEN — TODO_LIST row 1 + new report §g Q1/Q3 (action refs also unverified)
+~~| 2 | Apply parseMemoryBytes fix to the SystemNix fork | Med | S | Quality | TODO_LIST (BLOCKED: external repo) |~~ OPEN — TODO_LIST BLOCKED row
+~~| 3 | Absorb the watch.sh comment divergence in the SystemNix parity diff | Low | S | Quality | TODO_LIST (BLOCKED: external repo) |~~ OPEN — TODO_LIST BLOCKED row
+~~| 4 | Identify owner/generator of `.config/metadata.yaml` (may docs populate tags?) | Low | S | Process | TODO_LIST (BLOCKED: owner question) |~~ OPEN — TODO_LIST BLOCKED row + new report §g Q2
+~~| 5 | Push v0.1.0 tag + master to origin (explicit owner request required) | Med | S | Process | owner decision |~~ OPEN — §g Q1 of the close-out report; tag exists locally at HEAD
+~~| 6 | Standing SystemNix parity diff until the kill | Med | M | Quality | ROADMAP theme 1 |~~ ROUTED — ROADMAP theme 1 (raw idea present)
+~~| 7 | dual-wan migration; audit-gate modules; boot-mirror contract single-sourcing; options-table drift guard; boot-mirror VM leg; renovate | Med | L | Feature/Quality/Infra | ROADMAP themes 2-3 |~~ ROUTED — ROADMAP themes 2-3 (raw ideas present)
 
 ## g) Questions (cannot be answered from this repo)
 
