@@ -35,9 +35,17 @@ Raw ideas:
   conflict assertion names) once its consumer story is settled
 - Extract further proven pattern modules on demand — collection grows with
   real consumers, not speculatively
-- boot-mirror contract single-sourcing / drift gate: the same contract lives
-  in module assertions, the test throwIfNot chain, the README list, and the
-  negative-leg markers (drift risk; graduate when triplication bites)
+- boot-mirror contract single-sourcing — PARKED 2026-11-13 (SUPERB T10
+  spike verdict): the "duplication" is deliberate three-layer witnessing
+  (module self-assertions = internal consistency; the test's hardcoded
+  throwIfNot pins = independent external witness; README = the human
+  contract). Collapsing them into one exported source would make the
+  witness read its truth from the thing it watches — the phantom-green
+  class this repo's own hot-dir-migrate test header warns about. Layer
+  drift stays guarded by the negative-harness markers (each layer bites);
+  re-open only if a real cross-layer drift incident occurs. The options-
+  TABLE drift guard (README options vs options-json) remains separate and
+  viable — see its own bullet.
 - Module README options-table drift guard (same drift class as above)
 - boot-mirror runtime VM leg — the sync script's bootctl/rsync/diff path has
   never executed inside this repo's test net
