@@ -31,11 +31,11 @@ services.gatus-coverage-audit = {
 
 ## Options
 
-| Option       | Type          | Default | Notes                                          |
-| ------------ | ------------- | ------- | ---------------------------------------------- |
-| `enable`     | bool          | `false` | inert until enabled                            |
-| `registry`   | attrs of port | `{}`    | same consumer map as port-registry-audit       |
-| `allowPorts` | list of port  | `[]`    | justified exemptions; comment each where set   |
+| Option       | Type          | Default | Notes                                        |
+| ------------ | ------------- | ------- | -------------------------------------------- |
+| `enable`     | bool          | `false` | inert until enabled                          |
+| `registry`   | attrs of port | `{}`    | same consumer map as port-registry-audit     |
+| `allowPorts` | list of port  | `[]`    | justified exemptions; comment each where set |
 
 ## Contract (mutation-proven in `tests/negative/`)
 

@@ -50,8 +50,8 @@ Raw ideas:
   (`[a b]`) is idiomatic (an in-repo sweep produced 3 immediate false
   positives: `[enabled offender]`, `mkMerge [base extraHarden]`);
   discriminating needs type info. Repo guard stays the AGENTS gotcha pin
-  + the bite-proven harness. Re-open only as an upstream-statix rule with
-  an Apply-in-list-element visitor
+  - the bite-proven harness. Re-open only as an upstream-statix rule with
+    an Apply-in-list-element visitor
 - boot-mirror contract single-sourcing — PARKED 2026-11-13 (SUPERB T10
   spike verdict): the "duplication" is deliberate three-layer witnessing
   (module self-assertions = internal consistency; the test's hardcoded

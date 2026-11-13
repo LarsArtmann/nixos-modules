@@ -115,8 +115,8 @@ was closed.
 ## e) WHAT WE SHOULD IMPROVE
 
 - **Instrument first, rebuild second** on VM failures: one `machine.execute`
-  + journal grep ≈ 1 min; a theory-driven rebuild ≈ 4–15 min. Make it the
-  written rule for any VM red.
+  - journal grep ≈ 1 min; a theory-driven rebuild ≈ 4–15 min. Make it the
+    written rule for any VM red.
 - **Commit deliberately immediately after every green gate** — the daemon
   beat me to several commits, including mid-edit-sequence, causing stale
   anchors and "modified since read" churn 3+ times.

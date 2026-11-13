@@ -23,11 +23,11 @@ services.port-registry-audit = {
 
 ## Options
 
-| Option       | Type           | Default | Notes                                              |
-| ------------ | -------------- | ------- | -------------------------------------------------- |
-| `enable`     | bool           | `false` | inert until enabled                                |
-| `registry`   | attrs of port  | `{}`    | consumer's name -> port map; collision-checked     |
-| `allowPorts` | list of port   | `[]`    | justified exemptions; comment each where it is set |
+| Option       | Type          | Default | Notes                                              |
+| ------------ | ------------- | ------- | -------------------------------------------------- |
+| `enable`     | bool          | `false` | inert until enabled                                |
+| `registry`   | attrs of port | `{}`    | consumer's name -> port map; collision-checked     |
+| `allowPorts` | list of port  | `[]`    | justified exemptions; comment each where it is set |
 
 ## Contract (mutation-proven in `tests/negative/`)
 

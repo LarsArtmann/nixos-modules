@@ -24,9 +24,9 @@ services.systemd-shape-audit.allowTimerRestart = ["racy-sync"];
 
 ## Options
 
-| Option                    | Type      | Default | Notes                                             |
-| ------------------------- | --------- | ------- | ------------------------------------------------- |
-| `allowTimerRestart`       | listOf str | `[]`    | timer-driven units whose Restart≠no is deliberate |
-| `allowUnboundedOneshot`   | listOf str | `[]`    | boot-blocking oneshots with unbounded timeout     |
-| `allowUnitConfigServiceKeys` | listOf str | `[]` | `"<unit>:<Key>"` deliberate [Service]-in-unitConfig |
-| `allowOneshotIsactiveProbe`  | listOf str | `[]` | `"<prober>:<target>"` deliberate lying probes     |
+| Option                       | Type       | Default | Notes                                               |
+| ---------------------------- | ---------- | ------- | --------------------------------------------------- |
+| `allowTimerRestart`          | listOf str | `[]`    | timer-driven units whose Restart≠no is deliberate   |
+| `allowUnboundedOneshot`      | listOf str | `[]`    | boot-blocking oneshots with unbounded timeout       |
+| `allowUnitConfigServiceKeys` | listOf str | `[]`    | `"<unit>:<Key>"` deliberate [Service]-in-unitConfig |
+| `allowOneshotIsactiveProbe`  | listOf str | `[]`    | `"<prober>:<target>"` deliberate lying probes       |

@@ -140,34 +140,34 @@ documented deletions.
 
 ## f) Next tasks (ranked; routed — TODO_LIST 11 rows / ROADMAP 17 bullets after this harvest)
 
-| #  | Task                                                                        | Impact | Effort | Route                       |
-| -- | --------------------------------------------------------------------------- | ------ | ------ | --------------------------- |
-| ~~1~~ done — master pushed; v0.1.0 tag live on origin | ~~Push master + v0.1.0 tag (explicit owner request required)~~ | ~~High~~ | ~~S~~ | ~~§g Q1~~ |
-| ~~2~~ done — CI green runs 43338694884 + 43447887478; FEATURES flipped | ~~Verify CI first run on push; flip FEATURES 🟡→🟢; verify action refs exist~~ | ~~Med~~ | ~~S~~ | ~~TODO_LIST~~ |
-| ~~3~~ done — SystemNix master 592592293 (cross-repo, not a hash here) | ~~Apply parseMemoryBytes fix to the SystemNix fork~~ | ~~Med~~ | ~~S~~ | ~~TODO_LIST (BLOCKED)~~ |
-| ~~4~~ done — divergence dissolved: SystemNix delegated wifi-failover wholesale (T6) | ~~Absorb watch.sh comment divergence SystemNix-side~~ | ~~Low~~ | ~~S~~ | ~~TODO_LIST (BLOCKED)~~ |
-| 5 **→ open — owner lane (TODO_LIST BLOCKED row)** | `.config/metadata.yaml` ownership | Low | S | TODO_LIST (BLOCKED) + §g Q2 |
-| ~~6~~ done — T3: optionsjson harness group | ~~options-json bite-proof leg~~ | ~~Med~~ | ~~S~~ | ~~TODO_LIST~~ |
-| ~~7~~ done — T4: 76 contracts, Class A | ~~lib-eval: 5 remaining Class-B-only helpers~~ | ~~Med~~ | ~~M~~ | ~~TODO_LIST~~ |
-| ~~8~~ done — T3: honest mergeIt note | ~~Document mergeIt approximation in the test header~~ | ~~Low~~ | ~~S~~ | ~~TODO_LIST~~ |
-| ~~9~~ done — T3: --rebuild semantics established | ~~Investigate + document --rebuild semantics; re-word the VM evidence claims~~ | ~~Low~~ | ~~S~~ | ~~TODO_LIST~~ |
-| ~~10~~ done — T5: EXECUTED banner present | ~~Mark the SUPERB plan EXECUTED (header banner)~~ | ~~Low~~ | ~~S~~ | ~~TODO_LIST~~ |
-| ~~11~~ done — T5: [0.1.0] heading links the tag | ~~CHANGELOG [0.1.0] tag-ref link + version-bump flow doc~~ | ~~Low~~ | ~~S~~ | ~~TODO_LIST~~ |
-| ~~12~~ done — T7: tests/parity, 22 probes identical | ~~Standing SystemNix parity diff (carries 2 divergences)~~ | ~~Med~~ | ~~M~~ | ~~ROADMAP t1~~ |
-| 13 **→ open — the kill awaits consumer batches (ROADMAP direction)** | Consumer migration batches → the kill (109 harden files) | Med | L | ROADMAP t1 |
-| ~~14~~ done — T13: dropped with retirement evidence (ROADMAP) | ~~dual-wan module migration~~ | ~~Med~~ | ~~L~~ | ~~ROADMAP t2~~ |
-| ~~15~~ done — T14: module + contract + 5 legs | ~~Port-registry audit module~~ | ~~Med~~ | ~~L~~ | ~~ROADMAP t3~~ |
-| ~~16~~ done — T15: module + contract + 4 legs + bridge 8c108bdef | ~~Gatus-coverage audit module (shared scan surface)~~ | ~~Med~~ | ~~L~~ | ~~ROADMAP t3~~ |
-| ~~17~~ done — T10: PARKED with verdict (ROADMAP) | ~~boot-mirror contract single-sourcing / drift gate~~ | ~~Med~~ | ~~M~~ | ~~ROADMAP t2~~ |
-| ~~18~~ done — T11: options-readme-drift check | ~~Module README options-table drift guard~~ | ~~Low~~ | ~~M~~ | ~~ROADMAP t2~~ |
-| ~~19~~ done — T12: boot-mirror-vm green, CI 43447887478 | ~~boot-mirror runtime VM leg~~ | ~~Med~~ | ~~L~~ | ~~ROADMAP t2~~ |
-| ~~20~~ done — T8: Dependabot live; Renovate owner-opt-in (ROADMAP) | ~~Renovate/Dependabot for flake inputs (+ CI action pinning, §g Q3)~~ | ~~Low~~ | ~~M~~ | ~~ROADMAP t2~~ |
-| ~~21~~ done — T9: devShell + --help + PARALLEL | ~~Harness devShell (bash/git/rsync) + run.sh --help + parallel legs~~ | ~~Low~~ | ~~M~~ | ~~ROADMAP (ergonomics)~~ |
-| ~~22~~ done — T9: tests-wiring check | ~~Auto-count check: tests/*.nix vs flake wiring (kills the d.3 class)~~ | ~~Low~~ | ~~S~~ | ~~ROADMAP (ergonomics)~~ |
-| 23 **→ open — ROADMAP docs-automation idea** | Per-module option tables generated from options-json output | Low | M | ROADMAP (docs automation) |
-| ~~24~~ done — FEATURES testing/infra sections split | ~~FEATURES infra table split shipped vs pending~~ | ~~Low~~ | ~~S~~ | ~~ROADMAP (docs automation)~~ |
-| 25 **→ open — ROADMAP docs-automation idea** | lib/README fork ledger with per-helper SystemNix consumer counts, generated | Low | M | ROADMAP (docs automation) |
-| ~~26~~ done — T16: parked with evidence — statix has no custom-rule API (ROADMAP) | ~~Statix custom rule: unparenthesized select over application~~ | ~~Low~~ | ~~M~~ | ~~ROADMAP~~ |
+| #                                                                                   | Task                                                                           | Impact   | Effort | Route                         |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | -------- | ------ | ----------------------------- |
+| ~~1~~ done — master pushed; v0.1.0 tag live on origin                               | ~~Push master + v0.1.0 tag (explicit owner request required)~~                 | ~~High~~ | ~~S~~  | ~~§g Q1~~                     |
+| ~~2~~ done — CI green runs 43338694884 + 43447887478; FEATURES flipped              | ~~Verify CI first run on push; flip FEATURES 🟡→🟢; verify action refs exist~~ | ~~Med~~  | ~~S~~  | ~~TODO_LIST~~                 |
+| ~~3~~ done — SystemNix master 592592293 (cross-repo, not a hash here)               | ~~Apply parseMemoryBytes fix to the SystemNix fork~~                           | ~~Med~~  | ~~S~~  | ~~TODO_LIST (BLOCKED)~~       |
+| ~~4~~ done — divergence dissolved: SystemNix delegated wifi-failover wholesale (T6) | ~~Absorb watch.sh comment divergence SystemNix-side~~                          | ~~Low~~  | ~~S~~  | ~~TODO_LIST (BLOCKED)~~       |
+| 5 **→ open — owner lane (TODO_LIST BLOCKED row)**                                   | `.config/metadata.yaml` ownership                                              | Low      | S      | TODO_LIST (BLOCKED) + §g Q2   |
+| ~~6~~ done — T3: optionsjson harness group                                          | ~~options-json bite-proof leg~~                                                | ~~Med~~  | ~~S~~  | ~~TODO_LIST~~                 |
+| ~~7~~ done — T4: 76 contracts, Class A                                              | ~~lib-eval: 5 remaining Class-B-only helpers~~                                 | ~~Med~~  | ~~M~~  | ~~TODO_LIST~~                 |
+| ~~8~~ done — T3: honest mergeIt note                                                | ~~Document mergeIt approximation in the test header~~                          | ~~Low~~  | ~~S~~  | ~~TODO_LIST~~                 |
+| ~~9~~ done — T3: --rebuild semantics established                                    | ~~Investigate + document --rebuild semantics; re-word the VM evidence claims~~ | ~~Low~~  | ~~S~~  | ~~TODO_LIST~~                 |
+| ~~10~~ done — T5: EXECUTED banner present                                           | ~~Mark the SUPERB plan EXECUTED (header banner)~~                              | ~~Low~~  | ~~S~~  | ~~TODO_LIST~~                 |
+| ~~11~~ done — T5: [0.1.0] heading links the tag                                     | ~~CHANGELOG [0.1.0] tag-ref link + version-bump flow doc~~                     | ~~Low~~  | ~~S~~  | ~~TODO_LIST~~                 |
+| ~~12~~ done — T7: tests/parity, 22 probes identical                                 | ~~Standing SystemNix parity diff (carries 2 divergences)~~                     | ~~Med~~  | ~~M~~  | ~~ROADMAP t1~~                |
+| 13 **→ open — the kill awaits consumer batches (ROADMAP direction)**                | Consumer migration batches → the kill (109 harden files)                       | Med      | L      | ROADMAP t1                    |
+| ~~14~~ done — T13: dropped with retirement evidence (ROADMAP)                       | ~~dual-wan module migration~~                                                  | ~~Med~~  | ~~L~~  | ~~ROADMAP t2~~                |
+| ~~15~~ done — T14: module + contract + 5 legs                                       | ~~Port-registry audit module~~                                                 | ~~Med~~  | ~~L~~  | ~~ROADMAP t3~~                |
+| ~~16~~ done — T15: module + contract + 4 legs + bridge 8c108bdef                    | ~~Gatus-coverage audit module (shared scan surface)~~                          | ~~Med~~  | ~~L~~  | ~~ROADMAP t3~~                |
+| ~~17~~ done — T10: PARKED with verdict (ROADMAP)                                    | ~~boot-mirror contract single-sourcing / drift gate~~                          | ~~Med~~  | ~~M~~  | ~~ROADMAP t2~~                |
+| ~~18~~ done — T11: options-readme-drift check                                       | ~~Module README options-table drift guard~~                                    | ~~Low~~  | ~~M~~  | ~~ROADMAP t2~~                |
+| ~~19~~ done — T12: boot-mirror-vm green, CI 43447887478                             | ~~boot-mirror runtime VM leg~~                                                 | ~~Med~~  | ~~L~~  | ~~ROADMAP t2~~                |
+| ~~20~~ done — T8: Dependabot live; Renovate owner-opt-in (ROADMAP)                  | ~~Renovate/Dependabot for flake inputs (+ CI action pinning, §g Q3)~~          | ~~Low~~  | ~~M~~  | ~~ROADMAP t2~~                |
+| ~~21~~ done — T9: devShell + --help + PARALLEL                                      | ~~Harness devShell (bash/git/rsync) + run.sh --help + parallel legs~~          | ~~Low~~  | ~~M~~  | ~~ROADMAP (ergonomics)~~      |
+| ~~22~~ done — T9: tests-wiring check                                                | ~~Auto-count check: tests/*.nix vs flake wiring (kills the d.3 class)~~        | ~~Low~~  | ~~S~~  | ~~ROADMAP (ergonomics)~~      |
+| 23 **→ open — ROADMAP docs-automation idea**                                        | Per-module option tables generated from options-json output                    | Low      | M      | ROADMAP (docs automation)     |
+| ~~24~~ done — FEATURES testing/infra sections split                                 | ~~FEATURES infra table split shipped vs pending~~                              | ~~Low~~  | ~~S~~  | ~~ROADMAP (docs automation)~~ |
+| 25 **→ open — ROADMAP docs-automation idea**                                        | lib/README fork ledger with per-helper SystemNix consumer counts, generated    | Low      | M      | ROADMAP (docs automation)     |
+| ~~26~~ done — T16: parked with evidence — statix has no custom-rule API (ROADMAP)   | ~~Statix custom rule: unparenthesized select over application~~                | ~~Low~~  | ~~M~~  | ~~ROADMAP~~                   |
 
 ## g) Questions (cannot be answered from this repo)
 

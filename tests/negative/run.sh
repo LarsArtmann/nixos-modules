@@ -221,7 +221,7 @@ group_startlimit() {
 	run_case startlimit green-control start-limit-audit-contract pass - \
 		'modules/start-limit-audit/default.nix' '-'
 	run_case startlimit detection-neutered start-limit-audit-contract fail 'must flag a StartLimitBurst-in-serviceConfig offender' \
-	'modules/start-limit-audit/default.nix' 's|? StartLimitBurst|? StartLimitBurstMutated|'
+		'modules/start-limit-audit/default.nix' 's|? StartLimitBurst|? StartLimitBurstMutated|'
 	run_case startlimit fixture-stripped start-limit-audit-contract fail 'must flag a StartLimitBurst-in-serviceConfig offender' \
 		'tests/start-limit-audit-contract.nix' 's|StartLimitBurst = 5;|enable = true;|'
 }
@@ -236,42 +236,42 @@ group_tmpcleaner() {
 }
 
 group_shapeaudit() {
-run_case shapeaudit green-control systemd-shape-audit-contract pass - \
-	'modules/systemd-shape-audit/default.nix' '-'
-run_case shapeaudit class1-neutered systemd-shape-audit-contract fail 'Type=oneshot combined with an invalid Restart' \
-'modules/systemd-shape-audit/default.nix' 's|^    "always"$|    "always-mutated"|'
-run_case shapeaudit class7-neutered systemd-shape-audit-contract fail 'unbounded TimeoutStartSec' \
-'modules/systemd-shape-audit/default.nix' 's|"multi-user.target"|"multi-user-mutated.target"|'
-run_case shapeaudit class9-neutered systemd-shape-audit-contract fail 'nested inside unitConfig' \
-'modules/systemd-shape-audit/default.nix' 's|^    "TimeoutStartSec"$|    "TimeoutStartSec-mutated"|'
-run_case shapeaudit class1-fixture-stripped systemd-shape-audit-contract fail 'class marker missing' \
-	'tests/systemd-shape-audit-contract.nix' 's|Restart = "always";|Restart = "no";|'
+	run_case shapeaudit green-control systemd-shape-audit-contract pass - \
+		'modules/systemd-shape-audit/default.nix' '-'
+	run_case shapeaudit class1-neutered systemd-shape-audit-contract fail 'Type=oneshot combined with an invalid Restart' \
+		'modules/systemd-shape-audit/default.nix' 's|^    "always"$|    "always-mutated"|'
+	run_case shapeaudit class7-neutered systemd-shape-audit-contract fail 'unbounded TimeoutStartSec' \
+		'modules/systemd-shape-audit/default.nix' 's|"multi-user.target"|"multi-user-mutated.target"|'
+	run_case shapeaudit class9-neutered systemd-shape-audit-contract fail 'nested inside unitConfig' \
+		'modules/systemd-shape-audit/default.nix' 's|^    "TimeoutStartSec"$|    "TimeoutStartSec-mutated"|'
+	run_case shapeaudit class1-fixture-stripped systemd-shape-audit-contract fail 'class marker missing' \
+		'tests/systemd-shape-audit-contract.nix' 's|Restart = "always";|Restart = "no";|'
 }
 
 # ── portregistry: the never-hardcode-localhost:PORT class ──
 group_portregistry() {
-run_case portregistry green-control port-registry-audit-contract pass - \
-	'modules/port-registry-audit/default.nix' '-'
-run_case portregistry membership-neutered port-registry-audit-contract fail 'membership half must flag the offender' \
-	'modules/port-registry-audit/default.nix' 's|assertion = offenders == {};|assertion = true;|'
-run_case portregistry collision-neutered port-registry-audit-contract fail 'collision half must name both claimants' \
-	'modules/port-registry-audit/default.nix' 's|builtins.length names > 1|builtins.length names > 99|'
-run_case portregistry escape-broken port-registry-audit-contract fail 'allowPorts must silence' \
-	'modules/port-registry-audit/default.nix' 's|++ cfg.allowPorts|++ []|'
-run_case portregistry fixture-stripped port-registry-audit-contract fail 'membership half must flag the offender' \
-	'tests/port-registry-audit-contract.nix' 's|--port 8150|--port 8099|'
+	run_case portregistry green-control port-registry-audit-contract pass - \
+		'modules/port-registry-audit/default.nix' '-'
+	run_case portregistry membership-neutered port-registry-audit-contract fail 'membership half must flag the offender' \
+		'modules/port-registry-audit/default.nix' 's|assertion = offenders == {};|assertion = true;|'
+	run_case portregistry collision-neutered port-registry-audit-contract fail 'collision half must name both claimants' \
+		'modules/port-registry-audit/default.nix' 's|builtins.length names > 1|builtins.length names > 99|'
+	run_case portregistry escape-broken port-registry-audit-contract fail 'allowPorts must silence' \
+		'modules/port-registry-audit/default.nix' 's|++ cfg.allowPorts|++ []|'
+	run_case portregistry fixture-stripped port-registry-audit-contract fail 'membership half must flag the offender' \
+		'tests/port-registry-audit-contract.nix' 's|--port 8150|--port 8099|'
 }
 
 # ── gatuscoverage: the every-service-monitored class ──
 group_gatuscoverage() {
-run_case gatuscoverage green-control gatus-coverage-audit-contract pass - \
-	'modules/gatus-coverage-audit/default.nix' '-'
-run_case gatuscoverage classA-neutered gatus-coverage-audit-contract fail 'class A must name the uncovered port' \
-	'modules/gatus-coverage-audit/default.nix' 's|uncovered = lib.subtractLists (coveredPorts ++ cfg.allowPorts) inUsePorts;|uncovered = [];|'
-run_case gatuscoverage classB-neutered gatus-coverage-audit-contract fail 'class B must flag' \
-	'modules/gatus-coverage-audit/default.nix' 's|unregisteredLoopback = lib.unique (lib.subtractLists allowed loopbackUrlPorts);|unregisteredLoopback = [];|'
-run_case gatuscoverage fixture-stripped gatus-coverage-audit-contract fail 'class A must name the uncovered port' \
-	'tests/gatus-coverage-audit-contract.nix' 's|tcp://dot.mullvad.net:853|http://127.0.0.1:8099/health|'
+	run_case gatuscoverage green-control gatus-coverage-audit-contract pass - \
+		'modules/gatus-coverage-audit/default.nix' '-'
+	run_case gatuscoverage classA-neutered gatus-coverage-audit-contract fail 'class A must name the uncovered port' \
+		'modules/gatus-coverage-audit/default.nix' 's|uncovered = lib.subtractLists (coveredPorts ++ cfg.allowPorts) inUsePorts;|uncovered = [];|'
+	run_case gatuscoverage classB-neutered gatus-coverage-audit-contract fail 'class B must flag' \
+		'modules/gatus-coverage-audit/default.nix' 's|unregisteredLoopback = lib.unique (lib.subtractLists allowed loopbackUrlPorts);|unregisteredLoopback = [];|'
+	run_case gatuscoverage fixture-stripped gatus-coverage-audit-contract fail 'class A must name the uncovered port' \
+		'tests/gatus-coverage-audit-contract.nix' 's|tcp://dot.mullvad.net:853|http://127.0.0.1:8099/health|'
 }
 pids=()
 for g in $ALL_GROUPS; do
