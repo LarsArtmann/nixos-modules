@@ -149,7 +149,7 @@ serviceConfig = lib.mkMerge [
    module enabled, force `config.system.build.toplevel.drvPath` (full merge;
    module assertions throw here), then pin observable unit shapes with
    `lib.throwIfNot` chains. No VM needed when the contract is eval-observable.
-2. **VM tests** (`tests/wifi-failover.nix` → `wifi-failover-vm`):
+2. **VM tests** (`tests/wifi-failover.nix` → `wifi-failover-vm`, `tests/boot-mirror-vm.nix` → `boot-mirror-vm`):
    `runNixOSTest` exercising the REAL deployed ExecStart binary; a veth
    PEER's admin state simulates cable carrier (peer down = NO-CARRIER with
    the route still pinned — the exact production bug shape).
@@ -169,14 +169,34 @@ environment override — renaming log lines in `watch.sh` breaks the test.
 - `tests/negative/run.sh` copies only git-TRACKED files (`git ls-files`) —
   untracked new files silently miss the mutation copies.
 - `tests/*.nix` are functions with three signatures: VM tests take `{pkgs}`
-  (wifi-failover ignores it as `_`); eval-contract tests take
-  `{lib, pkgs, module}` (boot-mirror, hot-tier, hot-dir-migrate,
-  wifi-failover); the lib contract test takes `{lib, pkgs, collectionLib}`
-  (lib-eval). All 10 wired in flake.nix.
+  (wifi-failover ignores it as `_`); eval-contract tests take `{lib, pkgs, module}`
+  (boot-mirror, hot-tier, hot-dir-migrate, wifi-failover); the lib contract test takes `{lib, pkgs, collectionLib}`
+  (lib-eval). All wired in flake.nix (tests-wiring enforces both
+  directions).
 - Unit names with dashes: a literal `after = ["boot-mirror.mount"]` names a
   nonexistent unit (systemd escapes dashes: `boot\x2dmirror.mount`). Use
   `unitConfig.RequiresMountsFor`, which implies Requires=+After= on the real
   mount (see boot-mirror comments).
+- VM tests: plain `config.fileSystems` definitions are DISCARDED wholesale
+  by the VM machinery (`qemu-vm.nix` replaces `config.fileSystems` with
+  `mkVMOverride cfg.fileSystems` from `virtualisation.fileSystems`) —
+  declare test mounts the VM way
+  (`virtualisation.fileSystems."/path" = …`) or module assertions reading
+  `config.fileSystems.<path>` eval against a missing attribute (cost ~4h on
+  boot-mirror-vm, 2026-11-13).
+- VM tests: NEVER `mount`/`umount` a path by hand when a mount unit exists
+  for it — RequiresMountsFor-triggered syncs may already have mounted it, a
+  manual mount STACKS a second mount, and a later umount only removes the
+  top one while the unit stays active underneath (boot-mirror-vm,
+  2026-11-13). Drive it with `systemctl start/stop 'boot\x2dmirror.mount'`
+  instead — synchronous, no stacked mounts, no monitor lag.
+- VM tests + systemd failure semantics (empirical, pinned 2026-11-13): a
+  start job that dies on a RequiresMountsFor dependency reports
+  "dependency" as the JOB result only — the SERVICE's `Result` attribute
+  keeps its last run's value; the MOUNT carries the failure
+  (`Result=exit-code`), and the service ends `inactive` (never re-ran).
+  Assert on the mount's Result + the service's ActiveState, and
+  `machine.fail()` the job.
 - `harden {}` defaults an empty `CapabilityBoundingSet`; anything needing
   caps (e.g. `chown`) must pass them explicitly.
 - CHANGELOG.md follows Keep a Changelog — add an entry for notable changes.
@@ -208,6 +228,11 @@ environment override — renaming log lines in `watch.sh` breaks the test.
   freshness/audit-all/annotate/routing/cadence over the status-report corpus.
   Run it before archiving or after harvesting §f items; a red freshness gate
   names the exact unharvested report row.
+- statix is a FIXED rule set (W01-W23; toml disables only — no custom-rule
+  API). The select-parenthesization lint was PARKED with evidence
+  (ROADMAP): the `f x.y` misparse class is invisible post-parse, and the
+  lexical `[a b]` shape is idiomatic — discriminating needs type info
+  (upstream-statix material, not a repo-local gate).
 - SECURITY.md: vulnerabilities go through GitHub private security advisories,
   never public issues.
 
