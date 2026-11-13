@@ -17,6 +17,9 @@ nix build .#checks.x86_64-linux.wifi-failover-vm      # the VM test alone
 bash tests/negative/run.sh    # mutation tests — NOT part of flake check
 CASES=bootmirror bash tests/negative/run.sh  # filter one case group
 KEEP=1 bash tests/negative/run.sh            # keep mutated copy for triage
+PARALLEL=0 bash tests/negative/run.sh        # serialize groups (triage)
+bash tests/negative/run.sh --help            # usage + group list
+nix develop                                  # harness/dev shell (bash/git/rsync/jq/nix)
 nix build --rebuild -L .#checks.x86_64-linux.module-list  # re-EXECUTE a
                               # build and compare against the existing store
                               # paths (nix 2.34.9: "rebuild + compare" — exit 0
@@ -40,6 +43,10 @@ nix build --rebuild -L .#checks.x86_64-linux.module-list  # re-EXECUTE a
 - `tests/options-json.nix` (→ `checks.*.options-json`) renders each module's
   own options to JSON and proves every declaration resolves inside
   `modules/<name>/` (the path-provenance claim behind paths-not-imports).
+- `tests/wiring.nix` (→ `checks.*.tests-wiring`) mechanically proves every
+  top-level `tests/*.nix` file is wired into flake.nix AND every flake
+  `./tests/*.nix` reference resolves (the 7→8→10 hand-count churn class,
+  killed; both directions bite-proven 2026-11-13).
 - The formatting gate (`nix fmt` / `checks.formatting`) is treefmt over Nix
   files: alejandra (style) + deadnix (dead bindings) + statix (idiom).
   Markdown/JSON/YAML are deliberately NOT formatter-gated: dprint.json was
