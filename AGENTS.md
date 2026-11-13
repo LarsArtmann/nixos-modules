@@ -160,13 +160,21 @@ environment override — renaming log lines in `watch.sh` breaks the test.
 - `harden {}` defaults an empty `CapabilityBoundingSet`; anything needing
   caps (e.g. `chown`) must pass them explicitly.
 - CHANGELOG.md follows Keep a Changelog — add an entry for notable changes.
-- SystemNix fork divergences (this side fixed, SystemNix pending): the
-  `parseMemoryBytes` bare-byte fix (`lib/systemd.nix`) and the `watch.sh`
-  GW-comment wording — the standing parity diff must absorb both (CHANGELOG
-  2026-11-12 entries name them).
+- SystemNix fork divergences: only the `watch.sh` GW-comment wording remains
+  unabsorbed — `parseMemoryBytes` was fixed BOTH sides 2026-11-13 (SystemNix
+  carries the identical bare-byte fix + a `lib-parse-memory` regression
+  check). SystemNix `flake.lib` anomaly (pre-existing, flagged to owner):
+  calling `harden` through the `flake.lib` output fails on `lib.genAttrs`
+  at the lifecycle guard — import the fleet lib via `root + "/lib"` with
+  the perSystem lib instead (their checks' house idiom).
 - CI (`.github/workflows/check.yml`) runs `nix flake check -L` + the aarch64
   eval pass on every push to master and PR; the negative harness stays manual
-  (`nix build --impure` cannot run inside flake checks).
+  (`nix build --impure` cannot run inside flake checks). First run
+  (43336330142) was RED: contract checks that embed
+  `system.build.toplevel.drvPath` in their derivation env cannot build on a
+  fresh store — they pass on a warm store only (phantom-green class; fixed
+  2026-11-13 by gating on `config.assertions` directly). Green since run
+  43338694884 (VMs included). Never re-introduce drvPath-in-env forcing.
 - docs-gates (adopted 2026-11-12, config in `.docs-gates.json`, fleet
   defaults): `nix run github:Artmann-Technologies/docs-gates -- run .` gates
   freshness/audit-all/annotate/routing/cadence over the status-report corpus.
