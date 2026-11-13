@@ -1,5 +1,11 @@
 # SUPERB Pareto plan — release hardening + fleet bridge (2026-11-13 01:19)
 
+> **EXECUTED IN FULL — 2026-11-13 16:30.** All 17 tasks closed: T1–T12, T14,
+> T15, T17 shipped (T12's VM leg green on CI run 43447887478; the T14/T15
+> audit modules carry SystemNix delegation bridges — their master 8c108bdef);
+> T13 dropped and T16 parked, both with recorded evidence verdicts (ROADMAP).
+> Final report: `docs/status/2026-11-13_16-30_SUPERB-execution-final-report.md`.
+
 Second plan in `docs/planning/`. Input backlog: `TODO_LIST.md` (11 task rows:
 8 TODO + 3 BLOCKED, counted via grep at plan time) + `ROADMAP.md` (17
 raw-idea bullets) + the living 00:58 self-review report's §f (26 routed
