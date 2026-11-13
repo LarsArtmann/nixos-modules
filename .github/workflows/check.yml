@@ -34,3 +34,12 @@ jobs:
 
       - name: Full flake check (VM tests included)
         run: nix flake check -L
+
+      # Retry ONCE for the known Ubuntu-26 runner VM races (by-label device
+      # symlink vs mount device-timeout; udev settle under slow I/O): store
+      # paths from the first attempt are cached, so the retry rebuilds only
+      # the failed VM. Two consecutive failures = a real regression — the
+      # retry never masks that (it fails red again).
+      - name: Full flake check — retry once (Ubuntu-26 VM races)
+        if: failure()
+        run: nix flake check -L
