@@ -45,14 +45,17 @@ _: {
     # VM's mkVMOverride, so declare the SAME shape here — or the module's
     # nofail self-assertion evals against a missing attribute.
     virtualisation.fileSystems."/boot-mirror" = {
-      device = "/dev/vdb";
+      device = "/dev/vdb1";
       fsType = "vfat";
-      options = ["fmask=0077" "dmask=0077" "nofail"];
+      # Module-default options + a fixture-only short device-timeout: the
+      # partition exists only AFTER the scaffold runs, so the boot-time
+      # mount must give up in 1s (nofail soft-fail), not stall 90s.
+      options = ["fmask=0077" "dmask=0077" "nofail" "x-systemd.device-timeout=1s"];
     };
 
     services.boot-mirror = {
       enable = true;
-      device = "/dev/vdb";
+      device = "/dev/vdb1";
     };
 
     # Format the mirror ESP + seed a loader-shaped /boot tree. Runs after
@@ -69,11 +72,19 @@ _: {
       };
       path = [pkgs.dosfstools pkgs.e2fsprogs pkgs.util-linux];
       script = ''
-        if ! blkid /dev/vdb | grep -q 'TYPE="vfat"'; then
-          mkfs.vfat -n MIRRORESP /dev/vdb
+        # One ESP-typed GPT partition (bootctl refuses a filesystem on a
+        # raw, unpartitioned device): this stands in for the consumer's
+        # install-time partitioning, then formats the ESP.
+        if [ ! -b /dev/vdb1 ]; then
+          printf 'label: gpt\ntype=C12A7328-F81F-11D2-BA4B-00A0C93EC93B\n' \
+            | sfdisk --wipe always /dev/vdb
         fi
         udevadm settle
-        for i in $(seq 1 20); do [ -b /dev/vdb ] && break; sleep 1; done
+        for i in $(seq 1 20); do [ -b /dev/vdb1 ] && break; sleep 1; done
+        if ! blkid /dev/vdb1 | grep -q 'TYPE="vfat"'; then
+          mkfs.vfat -n MIRRORESP /dev/vdb1
+        fi
+        udevadm settle
         mkdir -p /boot/loader/entries
         printf 'timeout 3\n' > /boot/loader/loader.conf
         printf 'title NixOS VM test\nlinux /nixos-kernel\ninitrd /nixos-initrd\n' \
@@ -94,7 +105,7 @@ _: {
     # 1. Full sync: mount the formatted mirror (manual mount satisfies the
     # service's ConditionPathIsMountPoint; local-fs skipped it at boot
     # because vdb was still blank — nofail did its job), then sync.
-    machine.succeed("mount /dev/vdb /boot-mirror")
+    machine.succeed("mount /dev/vdb1 /boot-mirror")
     machine.succeed("systemctl start boot-mirror-sync.service")
     machine.wait_for_unit("boot-mirror-sync.service")
     mirror_entries = machine.succeed("ls /boot-mirror/loader/entries/").strip()
@@ -133,15 +144,15 @@ _: {
     # failure and no boot stall. (A plain umount is NOT degradation: the
     # pulled mount job would just remount the still-formatted vdb.)
     machine.succeed("umount /boot-mirror")
-    machine.succeed("wipefs -a /dev/vdb && udevadm settle")
+    machine.succeed("wipefs -a /dev/vdb1 && udevadm settle")
     machine.fail("systemctl restart boot-mirror-sync.service")
     status = machine.succeed("systemctl is-failed boot-mirror-sync.service || true").strip()
     assert status != "failed", f"degradation must not register as a unit failure: {status!r}"
 
     # 4. Loud failure: a read-only mirror (partial-copy stand-in) fails the
     # unit — the diff-gate posture: never call a partial mirror current.
-    machine.succeed("mkfs.vfat -n MIRRORESP /dev/vdb && udevadm settle")
-    machine.succeed("mount /dev/vdb /boot-mirror")
+    machine.succeed("mkfs.vfat -n MIRRORESP /dev/vdb1 && udevadm settle")
+    machine.succeed("mount /dev/vdb1 /boot-mirror")
     machine.succeed("mount -o remount,ro /boot-mirror")
     machine.succeed("touch /boot/loader/entries/trigger-ro.conf")
     machine.fail("systemctl start boot-mirror-sync.service")
