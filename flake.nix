@@ -85,6 +85,12 @@
               inherit lib pkgs;
               modules = nixosModules;
             };
+            # Count-drift guard: every tests/*.nix wired into this flake,
+            # every flake reference resolving to a real file (mechanizes
+            # the 7→8→10 hand-count churn class).
+            tests-wiring = import ./tests/wiring.nix {
+              inherit lib pkgs;
+            };
           }
           // lib.optionalAttrs (system == "x86_64-linux") {
             wifi-failover-vm = pkgs.testers.runNixOSTest (import ./tests/wifi-failover.nix {inherit pkgs;});
@@ -101,6 +107,28 @@
         in
           treefmtEval.config.build.wrapper
       );
+
+      # Harness/dev shell: the tools tests/negative + tests/parity need
+      # (bash, git+rsync for the copy, nix for the builds, jq for parity
+      # verdict rendering). `nix develop` → every gate runnable bare.
+      devShells = forAllSystems (system: {
+        default = nixpkgs.legacyPackages.${system}.mkShellNoCC {
+          packages = with nixpkgs.legacyPackages.${system}; [
+            bash
+            git
+            rsync
+            jq
+            nix
+          ];
+          shellHook = ''
+            echo "nixos-modules devshell — gates:" >&2
+            echo "  nix flake check            # everything (VMs on x86_64)" >&2
+            echo "  bash tests/negative/run.sh # mutation harness (CASES=, KEEP=, PARALLEL=0)" >&2
+            echo "  bash tests/parity/run.sh   # SystemNix parity diff (SYSTEMNIX_PATH=)" >&2
+            echo "  nix run github:Artmann-Technologies/docs-gates -- run ." >&2
+          '';
+        };
+      });
 
       # Manual (sibling-checkout-dependent) tools as flake apps: the negative
       # mutation harness and the SystemNix parity diff. Both copy/eval the

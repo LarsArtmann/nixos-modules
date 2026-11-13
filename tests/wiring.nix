@@ -9,23 +9,21 @@
   lib,
   pkgs,
 }: let
-  flakeText = builtins.readFile ./flake.nix;
+  flakeText = builtins.readFile ../flake.nix;
   testFiles =
     lib.filter
     (name: lib.hasSuffix ".nix" name)
-    (builtins.attrNames (builtins.readDir ./tests));
+    (builtins.attrNames (builtins.readDir ./.));
 
   referenced =
     lib.filter
-    (name: lib.hasInfix "\"./tests/${name}\"" flakeText || lib.hasInfix "./tests/${name}" flakeText)
+    (name: lib.hasInfix "./tests/${name}" flakeText)
     testFiles;
   unwired = lib.subtractLists referenced testFiles;
 
-  # Every ./tests/<x>.nix literal in the flake text must exist on disk.
-  mentioned =
-    lib.filter
-    (m: m != "")
-    (lib.split "\"\\./tests/\\([a-zA-Z0-9._-]*\\.nix\\)\"" flakeText);
+  # Every ./tests/<x>.nix path literal in the flake text must exist on
+  # disk (flake.nix uses unquoted Nix path literals for imports).
+  mentioned = lib.split "\\./tests/\\([a-zA-Z0-9._-]+\\.nix\\)" flakeText;
   # split yields non-matched segments (strings) and matches (lists with the
   # capture at index 0); keep only captured file names.
   mentionedFiles =
