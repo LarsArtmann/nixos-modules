@@ -103,6 +103,7 @@
             hot-tier-journal-vm = pkgs.testers.runNixOSTest (import ./tests/hot-tier-journal.nix {inherit pkgs;});
             hot-tier-caddy-vm = pkgs.testers.runNixOSTest (import ./tests/hot-tier-caddy.nix {inherit pkgs;});
             hot-dir-migrate-vm = pkgs.testers.runNixOSTest (import ./tests/hot-dir-migrate.nix {inherit pkgs;});
+            boot-mirror-vm = pkgs.testers.runNixOSTest (import ./tests/boot-mirror-vm.nix {inherit pkgs;});
           }
       );
 

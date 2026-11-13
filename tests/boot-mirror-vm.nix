@@ -1,0 +1,130 @@
+# Runtime VM leg for boot-mirror (SUPERB T12): the sync script's
+# bootctl/rsync/diff path has never executed inside this repo's test net —
+# the eval contract pins the unit SHAPE, this test proves the BEHAVIORS:
+#
+#   1. full sync: bootctl installs on the mirror, rsync copies the loader
+#      tree, the diff -r gate passes (unit success = tree-identical).
+#   2. reverse-propagation: a loader-side boot-count rename on the source
+#      is matched to the mirror's counter BEFORE the forward copy (the
+#      counters-survive-the-mirror contract), and a blessed entry drops its
+#      stale counting twin.
+#   3. degradation: with the mirror unmounted the sync CONDITION-SKIPS
+#      (inactive, never failed) — a detached mirror degrades boot nothing.
+#   4. loud failure: a read-only mirror fails the unit (partial copy must
+#      never be called a success — the diff-gate posture).
+#
+# Test-only scaffolding (production: the real ESP carries loader/entries and
+# the consumer formats the mirror ESP at install time): mirror-fmt formats
+# vdb as vfat BEFORE the mount is retried; esp-seed writes the loader tree
+# the production builder would own. nofail + condition-skip make every
+# ordering safe: an early trigger skips, the test re-triggers after mount.
+{
+  pkgs,
+}: {
+  name = "boot-mirror";
+
+  nodes.machine = {
+    config,
+    lib,
+    pkgs,
+    ...
+  }: let
+    entryStem = "nixos-vmtest";
+  in {
+    imports = [../modules/boot-mirror];
+
+    system.stateVersion = lib.mkDefault "26.11";
+
+    # 2nd disk = the mirror ESP (raw /dev/vdb: a test cannot know a by-uuid
+    # path at eval time; the option accepts any device string).
+    virtualisation.emptyDiskImages = [64];
+
+    services.boot-mirror = {
+      enable = true;
+      device = "/dev/vdb";
+    };
+
+    # Format the mirror ESP + seed a loader-shaped /boot tree. Runs before
+    # the mount retry and before the first sync trigger matters (early
+    # triggers condition-skip harmlessly).
+    systemd.services.boot-mirror-scaffold = {
+      description = "Format mirror ESP + seed loader tree (test-only)";
+      wantedBy = ["multi-user.target"];
+      after = ["multi-user.target" "systemd-udev-settle.service"];
+      serviceConfig.Type = "oneshot";
+      path = [pkgs.dosfstools pkgs.e2fsprogs pkgs.util-linux];
+      script = ''
+        if ! blkid /dev/vdb | grep -q 'TYPE="vfat"'; then
+          mkfs.vfat -n MIRRORESP /dev/vdb
+        fi
+        udevadm settle
+        for i in $(seq 1 20); do [ -b /dev/vdb ] && break; sleep 1; done
+        mkdir -p /boot/loader/entries
+        printf 'timeout 3\n' > /boot/loader/loader.conf
+        printf 'title NixOS VM test\nlinux /nixos-kernel\ninitrd /nixos-initrd\n' \
+          > "/boot/loader/entries/${entryStem}+2-1.conf"
+        printf 'FAKE KERNEL\n' > /boot/nixos-kernel
+        printf 'FAKE INITRD\n' > /boot/nixos-initrd
+      '';
+    };
+
+    environment.systemPackages = [pkgs.rsync];
+  };
+
+  testScript = ''
+    machine.start()
+    machine.wait_for_unit("multi-user.target")
+    machine.wait_for_unit("boot-mirror-scaffold.service")
+
+    # 1. Full sync: mount the formatted mirror (manual mount satisfies the
+    # service's ConditionPathIsMountPoint; local-fs skipped it at boot
+    # because vdb was still blank — nofail did its job), then sync.
+    machine.succeed("mount /dev/vdb /boot-mirror")
+    machine.succeed("systemctl start boot-mirror-sync.service")
+    machine.wait_for_unit("boot-mirror-sync.service")
+    mirror_entries = machine.succeed("ls /boot-mirror/loader/entries/").strip()
+    assert "nixos-vmtest" in mirror_entries, f"mirror missing entry: {mirror_entries!r}"
+    # The diff gate ran: unit success IS tree-identity (random-seed excluded,
+    # per-ESP by design).
+    assert "loader.conf" in machine.succeed("ls /boot-mirror/loader/"), "mirror missing loader.conf"
+
+    # 2. Reverse-propagation: a loader-side boot-count rename on the SOURCE
+    # (booted-side state) converges to the mirror's counter name. The mirror
+    # holds nixos-vmtest+2-1.conf; rename the source's copy to +5 (the loader
+    # bumped it) — the sync must move the source entry to the MIRROR's name
+    # (counters survive; the diff gate stays green).
+    machine.succeed("mv '/boot/loader/entries/nixos-vmtest+2-1.conf' '/boot/loader/entries/nixos-vmtest+5.conf'")
+    machine.succeed("systemctl restart boot-mirror-sync.service")
+    src_after = machine.succeed("ls /boot/loader/entries/").strip()
+    assert "+2-1" in src_after and "+5" not in src_after, \
+      f"reverse-propagation did not converge the counter: {src_after!r}"
+    diff_out = machine.succeed("diff -r -x random-seed /boot /boot-mirror")
+    assert diff_out == "", f"mirror diverged after counter convergence: {diff_out!r}"
+
+    # 2b. Blessing: a blessed entry (counter stripped on the booted side,
+    # twin still counting on the managed side) drops its stale twin BEFORE
+    # the forward copy.
+    machine.succeed("mv '/boot/loader/entries/nixos-vmtest+2-1.conf' '/boot/loader/entries/nixos-vmtest.conf'")
+    machine.succeed("mv '/boot-mirror/loader/entries/nixos-vmtest+2-1.conf' '/boot-mirror/loader/entries/nixos-vmtest+3.conf'")
+    machine.succeed("systemctl restart boot-mirror-sync.service")
+    src_blessed = machine.succeed("ls /boot/loader/entries/").strip()
+    assert "nixos-vmtest.conf" in src_blessed and "+3" not in machine.succeed("ls /boot-mirror/loader/entries/"), \
+      "blessed entry did not converge"
+
+    # 3. Degradation: mirror detached -> the sync condition-SKIPS (inactive
+    # is fine, failed is not). Wants-not-requires, never a boot stall.
+    machine.succeed("umount /boot-mirror")
+    machine.succeed("touch /boot/loader/entries/trigger-degraded.conf")
+    machine.succeed("systemctl start boot-mirror-sync.service")
+    status = machine.succeed("systemctl is-failed boot-mirror-sync.service || true").strip()
+    assert status != "failed", f"condition-skip must not register as failed: {status!r}"
+
+    # 4. Loud failure: a read-only mirror (partial-copy stand-in) fails the
+    # unit — the diff-gate posture: never call a partial mirror current.
+    machine.succeed("mount /dev/vdb /boot-mirror")
+    machine.succeed("mount -o remount,ro /boot-mirror")
+    machine.succeed("rm /boot/loader/entries/trigger-degraded.conf; touch /boot/loader/entries/trigger-ro.conf")
+    machine.fail("systemctl start boot-mirror-sync.service")
+    machine.succeed("mount -o remount,rw /boot-mirror")
+  '';
+}
