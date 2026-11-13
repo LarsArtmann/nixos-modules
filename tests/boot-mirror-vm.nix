@@ -8,16 +8,20 @@
 #      is matched to the mirror's counter BEFORE the forward copy (the
 #      counters-survive-the-mirror contract), and a blessed entry drops its
 #      stale counting twin.
-#   3. degradation: with the mirror unmounted the sync CONDITION-SKIPS
-#      (inactive, never failed) — a detached mirror degrades boot nothing.
+#   3. degradation: with the mirror's fs signature erased, the sync's
+#      RequiresMountsFor dependency-fails the START JOB (the unit never
+#      runs, stays inactive, never failed) — a detached mirror degrades
+#      boot nothing.
 #   4. loud failure: a read-only mirror fails the unit (partial copy must
 #      never be called a success — the diff-gate posture).
 #
 # Test-only scaffolding (production: the real ESP carries loader/entries and
-# the consumer formats the mirror ESP at install time): mirror-fmt formats
-# vdb as vfat BEFORE the mount is retried; esp-seed writes the loader tree
-# the production builder would own. nofail + condition-skip make every
-# ordering safe: an early trigger skips, the test re-triggers after mount.
+# the consumer formats the mirror ESP at install time): a scaffold unit
+# formats vdb as vfat after boot and seeds the loader tree the production
+# builder would own. The VM machinery REPLACES config.fileSystems with
+# virtualisation.fileSystems (qemu-vm.nix mkVMOverride), so the mirror
+# mount is declared the VM way with the module's exact default options:
+# nofail makes the pre-format boot mount fail soft, the test mounts by hand.
 _: {
   name = "boot-mirror";
 
@@ -36,19 +40,33 @@ _: {
     # path at eval time; the option accepts any device string).
     virtualisation.emptyDiskImages = [64];
 
+    # VM-way mirror mount (see header): the module's own
+    # fileSystems."/boot-mirror" definition is discarded wholesale by the
+    # VM's mkVMOverride, so declare the SAME shape here — or the module's
+    # nofail self-assertion evals against a missing attribute.
+    virtualisation.fileSystems."/boot-mirror" = {
+      device = "/dev/vdb";
+      fsType = "vfat";
+      options = ["fmask=0077" "dmask=0077" "nofail"];
+    };
+
     services.boot-mirror = {
       enable = true;
       device = "/dev/vdb";
     };
 
-    # Format the mirror ESP + seed a loader-shaped /boot tree. Runs before
-    # the mount retry and before the first sync trigger matters (early
-    # triggers condition-skip harmlessly).
+    # Format the mirror ESP + seed a loader-shaped /boot tree. Runs after
+    # multi-user: the boot-time mount of blank vdb has already failed soft
+    # (nofail), and early path-triggered syncs dependency-fail harmlessly.
     systemd.services.boot-mirror-scaffold = {
       description = "Format mirror ESP + seed loader tree (test-only)";
       wantedBy = ["multi-user.target"];
       after = ["multi-user.target" "systemd-udev-settle.service"];
-      serviceConfig.Type = "oneshot";
+      serviceConfig = {
+        Type = "oneshot";
+        # wait_for_unit below must observe an active unit.
+        RemainAfterExit = true;
+      };
       path = [pkgs.dosfstools pkgs.e2fsprogs pkgs.util-linux];
       script = ''
         if ! blkid /dev/vdb | grep -q 'TYPE="vfat"'; then
@@ -65,7 +83,7 @@ _: {
       '';
     };
 
-    environment.systemPackages = [pkgs.rsync];
+    environment.systemPackages = [pkgs.rsync pkgs.diffutils pkgs.dosfstools pkgs.util-linux];
   };
 
   testScript = ''
@@ -108,19 +126,24 @@ _: {
     assert "nixos-vmtest.conf" in src_blessed and "+3" not in machine.succeed("ls /boot-mirror/loader/entries/"), \
       "blessed entry did not converge"
 
-    # 3. Degradation: mirror detached -> the sync condition-SKIPS (inactive
-    # is fine, failed is not). Wants-not-requires, never a boot stall.
+    # 3. Degradation: mirror detached = its fs signature erased. The sync's
+    # RequiresMountsFor pulls the mount unit into every start transaction,
+    # so a detached mirror FAILS THE START JOB (dependency): the unit never
+    # runs, its state stays inactive — wants-not-requires means no unit
+    # failure and no boot stall. (A plain umount is NOT degradation: the
+    # pulled mount job would just remount the still-formatted vdb.)
     machine.succeed("umount /boot-mirror")
-    machine.succeed("touch /boot/loader/entries/trigger-degraded.conf")
-    machine.succeed("systemctl start boot-mirror-sync.service")
+    machine.succeed("wipefs -a /dev/vdb && udevadm settle")
+    machine.fail("systemctl restart boot-mirror-sync.service")
     status = machine.succeed("systemctl is-failed boot-mirror-sync.service || true").strip()
-    assert status != "failed", f"condition-skip must not register as failed: {status!r}"
+    assert status != "failed", f"degradation must not register as a unit failure: {status!r}"
 
     # 4. Loud failure: a read-only mirror (partial-copy stand-in) fails the
     # unit — the diff-gate posture: never call a partial mirror current.
+    machine.succeed("mkfs.vfat -n MIRRORESP /dev/vdb && udevadm settle")
     machine.succeed("mount /dev/vdb /boot-mirror")
     machine.succeed("mount -o remount,ro /boot-mirror")
-    machine.succeed("rm /boot/loader/entries/trigger-degraded.conf; touch /boot/loader/entries/trigger-ro.conf")
+    machine.succeed("touch /boot/loader/entries/trigger-ro.conf")
     machine.fail("systemctl start boot-mirror-sync.service")
     machine.succeed("mount -o remount,rw /boot-mirror")
   '';
