@@ -103,10 +103,13 @@ _: {
     machine.wait_for_unit("multi-user.target")
     machine.wait_for_unit("boot-mirror-scaffold.service")
 
-    # 1. Full sync: mount the formatted mirror (manual mount satisfies the
-    # service's ConditionPathIsMountPoint; local-fs skipped it at boot
-    # because vdb was still blank — nofail did its job), then sync.
-    machine.succeed("mount /dev/vdb1 /boot-mirror")
+    # 1. Full sync: mount the formatted mirror THROUGH the mount unit
+    # (never `mount` by hand: the path-triggered syncs after the scaffold
+    # already mounted it via RequiresMountsFor — a manual mount STACKS a
+    # second mount and a later umount only removes the top one, leaving the
+    # unit active under it). local-fs skipped the boot mount because vdb
+    # was still blank — nofail did its job.
+    machine.succeed("systemctl start 'boot\\x2dmirror.mount'")
     machine.succeed("systemctl start boot-mirror-sync.service")
     machine.wait_for_unit("boot-mirror-sync.service")
     mirror_entries = machine.succeed("ls /boot-mirror/loader/entries/").strip()
@@ -138,37 +141,19 @@ _: {
     assert "nixos-vmtest.conf" in src_blessed and "+3" not in machine.succeed("ls /boot-mirror/loader/entries/"), \
       "blessed entry did not converge"
 
-    # 3. Degradation: mirror detached = its kernel partition removed. The
-    # sync's RequiresMountsFor pulls the mount unit into every start
-    # transaction, so a detached mirror FAILS THE START JOB (dependency):
-    # the script never runs — the failed unit never blocks boot (proven
-    # above: multi-user was reached mirror-less). (A plain umount is NOT
-    # degradation: the pulled mount job would just remount vdb1.)
-    machine.succeed("umount /boot-mirror && udevadm settle")
-    # Detach the mirror at the fs level: zero the vfat superblock — the
-    # disk still attaches, its filesystem is unreadable: the realistic
-    # degraded state a consumer's disk develops. Kernel-level unplug
-    # proved RACY here (sfdisk --delete left the node mountable — the
-    # pulled mount job remounted it; partx BLKPG delete returned EBUSY
-    # 10/10 on the virtio disk), and systemctl mask cannot write into
-    # NixOS's store-backed /etc. (A plain umount is NOT degradation
-    # either: the pulled mount job would just remount vdb1.)
+    # 3. Degradation: the mirror goes unusable. Unmount through the unit
+    # (systemctl stop: synchronous, no stacked-mount hazard, no
+    # mount-monitor lag), then zero the vfat superblock — the disk still
+    # attaches, its filesystem is unreadable: the realistic degraded state
+    # a consumer's disk develops. Kernel-level unplug proved RACY here
+    # (sfdisk --delete left the node mountable — the pulled mount job
+    # remounted it; partx BLKPG delete returned EBUSY 10/10 on the virtio
+    # disk), and systemctl mask cannot write into NixOS's store-backed
+    # /etc. (A plain umount is NOT degradation either: the pulled mount
+    # job would just remount vdb1.)
+    machine.succeed("systemctl stop 'boot\\x2dmirror.mount' && udevadm settle")
     machine.succeed(
         "dd if=/dev/zero of=/dev/vdb1 bs=512 count=4 && udevadm settle"
-    )
-    # Wait out systemd's mount-monitoring lag: until the umount is PROCESSED,
-    # the mount unit still reads active and the restart would skip the mount
-    # job entirely (observed: the script ran against the bare mountpoint).
-    _, diag = machine.execute(
-        "grep boot-mirror /proc/mounts; echo ---"
-        "; systemctl is-active 'boot\\\\x2dmirror.mount'"
-        "; systemctl show 'boot\\\\x2dmirror.mount' -p ActiveState,SubState,Result"
-        "; findmnt /boot-mirror"
-        "; echo ---"
-    )
-    print("DIAG:" + diag)
-    machine.wait_until_succeeds(
-        "! systemctl is-active -q 'boot\\x2dmirror.mount'"
     )
     machine.fail("systemctl restart boot-mirror-sync.service")
     # Empirical systemd semantics (pinned): the start JOB fails through
@@ -184,7 +169,7 @@ _: {
     # 4. Loud failure: a read-only mirror (partial-copy stand-in) fails the
     # unit — the diff-gate posture: never call a partial mirror current.
     machine.succeed("mkfs.vfat -n MIRRORESP /dev/vdb1 && udevadm settle")
-    machine.succeed("mount /dev/vdb1 /boot-mirror")
+    machine.succeed("systemctl start 'boot\\x2dmirror.mount'")
     machine.succeed("mount -o remount,ro /boot-mirror")
     machine.succeed("touch /boot/loader/entries/trigger-ro.conf")
     machine.fail("systemctl start boot-mirror-sync.service")
