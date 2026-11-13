@@ -114,7 +114,12 @@ in {
     machine.wait_for_unit("caddy.service")
     machine.wait_for_open_port(80)
 
-    # 1a: the mount came up and is the caddy-logs subvolume.
+    # 1a: the mount came up and is the caddy-logs subvolume. Wait for the
+    # mount unit EXPLICITLY: caddy is only After+wants (never requires) the
+    # mount, so under slow I/O caddy can be serving while the btrfs mount
+    # is still settling — and findmnt on an unmounted path exits 1 (the
+    # 2026-11-13 Ubuntu-26-runner race, two red CI runs at the same assert).
+    machine.wait_for_unit("var-log-caddy.mount")
     fsroot = machine.succeed("findmnt -n -o FSROOT /var/log/caddy").strip()
     assert "caddy-logs" in fsroot, f"unexpected FSROOT on /var/log/caddy: {fsroot}"
 

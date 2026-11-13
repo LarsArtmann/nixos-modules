@@ -103,7 +103,11 @@ in {
     machine.start()
     machine.wait_for_unit("multi-user.target")
 
-    # 1a: the mount came up and is the journal subvolume.
+    # 1a: the mount came up and is the journal subvolume. Wait for the mount
+    # unit EXPLICITLY (journald is After+wants it, never requires — under
+    # slow I/O the assert can otherwise race the settling btrfs mount; the
+    # 2026-11-13 Ubuntu-26-runner caddy-test race is the same class).
+    machine.wait_for_unit("var-log-journal.mount")
     fsroot = machine.succeed("findmnt -n -o FSROOT /var/log/journal").strip()
     assert "journal" in fsroot, f"unexpected FSROOT on /var/log/journal: {fsroot}"
 

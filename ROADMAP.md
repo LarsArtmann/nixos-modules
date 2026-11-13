@@ -44,9 +44,6 @@ Raw ideas:
 - Renovate app for flake inputs (the nixpkgs unstable pin) — owner opt-in:
   Dependabot covers github-actions since 2026-11-13 (T8); flake.lock stays
   manual (`nix flake update` + full gates) until the app is installed
-- Test-net ergonomics: a devShell carrying the harness deps (bash/git/rsync),
-  `run.sh --help` + parallel legs, and a tiny check that counts `tests/*.nix`
-  vs flake-wired entries (the session's 7→8→10 count churn, mechanized)
 - Docs automation: per-module option tables generated from the options-json
   check output; FEATURES infra table split shipped vs pending; the lib/README
   fork ledger with per-helper SystemNix consumer counts, auto-generated
