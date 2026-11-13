@@ -2,6 +2,18 @@
 # pure-eval checks) plus an aarch64 eval-portability pass. The VM tests need
 # KVM on the runner — public GitHub ubuntu runners expose /dev/kvm since
 # 2024 but with root-only perms, hence the chmod step.
+#
+# STANDING MANUAL GATES — these CANNOT run here and must be run locally
+# after the changes that trigger them:
+#   - tests/parity/run.sh (or `nix run .#parity-diff`): semantic lib parity
+#     vs the SystemNix fork. Needs the SystemNix sibling checkout
+#     (SYSTEMNIX_PATH= overrides; default ~/projects/SystemNix) because it
+#     imports BOTH lib trees over the same nixpkgs — CI has no such access.
+#     RUN IT after every lib/ change here or SystemNix-side.
+#   - tests/negative/run.sh (or `nix run .#negative-tests`): the mutation
+#     harness. It drives `nix build --impure` against mutated COPIES of this
+#     tree, which cannot run inside hermetic flake checks. RUN IT after
+#     touching module assertions or contract pins.
 name: check
 
 on:
@@ -43,3 +55,12 @@ jobs:
       - name: Full flake check — retry once (Ubuntu-26 VM races)
         if: failure()
         run: nix flake check -L
+
+      # Visibility reminder: two STANDING gates live outside this workflow
+      # (details in the header comment). Green here does NOT mean the
+      # parity diff or the mutation harness ran.
+      - name: Reminder — manual gates not covered by CI
+        run: |
+          echo "::notice::Manual gates NOT run by this workflow:" \
+            "tests/parity/run.sh (after lib/ changes; needs SystemNix sibling)" \
+            "and tests/negative/run.sh (after assertion/contract changes)"
