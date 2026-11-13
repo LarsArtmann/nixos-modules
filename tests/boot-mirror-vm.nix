@@ -160,7 +160,7 @@ _: {
     # the mount unit still reads active and the restart would skip the mount
     # job entirely (observed: the script ran against the bare mountpoint).
     machine.wait_until_succeeds(
-        "! systemctl is-active -q 'boot\\\\x2dmirror.mount'"
+        "! systemctl is-active -q 'boot\\x2dmirror.mount'"
     )
     machine.fail("systemctl restart boot-mirror-sync.service")
     # Empirical systemd semantics (pinned): the start JOB fails through
