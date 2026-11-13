@@ -56,6 +56,8 @@ wiring is consumer-side (layer it at the delegation site).
 - `ProtectSystem = false` is load-bearing (RO bind of the read source breaks
   the counter reverse-propagation renames — EROFS class)
 - background IO tier (BE/6)
+- the post-rsync `diff -r` verification gate stays (pinned at eval on the
+  sync script's shape; the `diffgate-stripped` mutation leg proves it)
 
 Violating any of these fails `nix flake check` (the module self-asserts) and
 the mutation legs in `tests/negative/` prove the assertions bite.

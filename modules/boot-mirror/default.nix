@@ -112,7 +112,7 @@
     #    (failed copy, partial write, manual edit) fails the unit loudly
     #    instead of arming a stale-boot trap. "System Volume Information"
     #    is FAT-tooling noise, never mirrored.
-    if ! diff -q -x random-seed -x "System Volume Information" ${src} "${mirror}"; then
+    if ! diff -r -x random-seed -x "System Volume Information" ${src} "${mirror}"; then
       echo "boot-mirror-sync: mirror diverges from ${src} (diff above) — refusing to call the 2nd boot disk current" >&2
       exit 1
     fi
@@ -224,7 +224,7 @@ in {
           # refusal message. The negative-harness diffgate-stripped leg
           # proves this assertion bites.
           assertion =
-            lib.hasInfix ''if ! diff -q -x random-seed -x "System Volume Information"'' syncText
+            lib.hasInfix ''if ! diff -r -x random-seed -x "System Volume Information"'' syncText
             && lib.hasInfix "refusing to call the 2nd boot disk current" syncText;
           message = "boot-mirror-sync: the diff -r verification gate must stay — a mirror allowed to silently diverge is a stale-boot trap";
         }
