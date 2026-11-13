@@ -136,6 +136,11 @@ group_bootmirror() {
 		'modules/boot-mirror/default.nix' 's|"nofail"|"nofail-mutated"|'
 	run_case bootmirror tier-stripped boot-mirror-contract fail 'background IO tier' \
 		'modules/boot-mirror/default.nix' 's|^          ioTier.background$|          { }|'
+	# VM leg: the degradation pin must BITE — flipping the expected mount
+	# Result makes the runtime check fail on its own assert message (the
+	# only VM-build leg in the harness; ~3min).
+	run_case bootmirror vm-degradation-unpinned boot-mirror-vm fail 'expected the mount to carry the failure' \
+		'tests/boot-mirror-vm.nix' 's|== "exit-code"|== "success"|'
 }
 
 # ── hottier: the wants-not-requires + *Directory= trap classes ──

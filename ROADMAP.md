@@ -40,6 +40,18 @@ Raw ideas:
   returns (wifi-failover's conflict assertion stays as standing defense)
 - Extract further proven pattern modules on demand — collection grows with
   real consumers, not speculatively
+- Select-parenthesization lint (unparenthesized application in list
+  literals) — PARKED 2026-11-13 (SUPERB T16 verdict, evidence-backed):
+  statix has NO custom-rule API (fixed W01-W23 set, toml disables only —
+  CLI-verified), so the rule means an upstream statix contribution; more
+  fundamentally the d.4 phantom-falsehood class (`f x.y` misread as
+  `f (x.y)` when `(f x).y` was meant) is INVISIBLE post-parse — the AST is
+  always the misparse, intent is not syntax — and the lexical narrow shape
+  (`[a b]`) is idiomatic (an in-repo sweep produced 3 immediate false
+  positives: `[enabled offender]`, `mkMerge [base extraHarden]`);
+  discriminating needs type info. Repo guard stays the AGENTS gotcha pin
+  + the bite-proven harness. Re-open only as an upstream-statix rule with
+  an Apply-in-list-element visitor
 - boot-mirror contract single-sourcing — PARKED 2026-11-13 (SUPERB T10
   spike verdict): the "duplication" is deliberate three-layer witnessing
   (module self-assertions = internal consistency; the test's hardcoded
