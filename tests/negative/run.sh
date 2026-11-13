@@ -32,7 +32,7 @@ SYSTEM="$(uname -m)-linux"
 WORK="$(mktemp -d "${XDG_CACHE_HOME:-$HOME/.cache}/negative-collection.XXXXXX")"
 [ "${KEEP:-0}" = "1" ] || trap 'rm -rf "$WORK"' EXIT
 
-ALL_GROUPS="bootmirror hottier hotdirmigrate wififailover timeoutaudit startlimit tmpcleaner shapeaudit portregistry gatuscoverage lib optionsjson"
+ALL_GROUPS="bootmirror hottier hotdirmigrate wififailover timeoutaudit startlimit tmpcleaner shapeaudit portregistry gatuscoverage mountgating memwatermark dynamicuser capgrant lib optionsjson"
 
 if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
 	sed -n 's/^# \?//p' "$0" | sed -n '2,30p'
@@ -145,7 +145,7 @@ run_case() {
 	esac
 }
 
-ALL_GROUPS="bootmirror hottier hotdirmigrate wififailover timeoutaudit startlimit tmpcleaner shapeaudit portregistry gatuscoverage lib optionsjson"
+ALL_GROUPS="bootmirror hottier hotdirmigrate wififailover timeoutaudit startlimit tmpcleaner shapeaudit portregistry gatuscoverage mountgating memwatermark dynamicuser capgrant lib optionsjson"
 
 # ── bootmirror: the 2026-10-17 gen-922 stale-boot class ──
 # These legs moved from SystemNix scripts/negative-test-lints.sh when the
@@ -166,9 +166,13 @@ group_bootmirror() {
 	# The diff-gate self-pin (module asserts the gate's shape at eval):
 	# neutering the verification diff trips the module's OWN assertion —
 	# the gate itself is runtime-only, the eval pin is what makes the
-	# harness able to bite here at all.
+	# harness able to bite here at all. The sed is anchored on
+	# `Information" ${src}` — the script line's tail — so it CANNOT hit
+	# the pin's copy of the fragment (which ends at `Information''`); a
+	# pattern like `s|diff -r|diff -q|` would mutate BOTH consistently and
+	# the case would go phantom-green (found live 2026-11-13).
 	run_case bootmirror diffgate-stripped boot-mirror-contract fail 'the diff -r verification gate must stay' \
-		'modules/boot-mirror/default.nix' 's|if ! diff -r -x random-seed|if ! diff -q -x random-seed|'
+		'modules/boot-mirror/default.nix' 's|Information" ${src}|InformationX ${src}|'
 	run_case bootmirror tier-stripped boot-mirror-contract fail 'background IO tier' \
 		'modules/boot-mirror/default.nix' 's|^          ioTier.background$|          { }|'
 	# VM leg: the degradation pin must BITE — flipping the expected mount
@@ -307,6 +311,48 @@ group_gatuscoverage() {
 		'modules/gatus-coverage-audit/default.nix' 's|unregisteredLoopback = lib.unique (lib.subtractLists allowed loopbackUrlPorts);|unregisteredLoopback = [];|'
 	run_case gatuscoverage fixture-stripped gatus-coverage-audit-contract fail 'class A must name the uncovered port' \
 		'tests/gatus-coverage-audit-contract.nix' 's|tcp://dot.mullvad.net:853|http://127.0.0.1:8099/health|'
+}
+
+# ── the four A1b audit gates (moved from SystemNix 2026-11-13): each module
+#    detection neuter + each contract-fixture violation must break the build ──
+group_mountgating() {
+	run_case mountgating green-control mount-gating-audit-contract pass - \
+		'modules/mount-gating-audit/default.nix' '-'
+	run_case mountgating detection-neutered mount-gating-audit-contract fail 'the guard must flag an ungated ReadWritePaths-under-/mnt/ unit' \
+		'modules/mount-gating-audit/default.nix' 's|lib.hasPrefix "/mnt/"|lib.hasPrefix "/mnt-mutated/"|'
+	run_case mountgating dash-neutered mount-gating-audit-contract fail 'the dash-under-declared-mount class must flag' \
+		'modules/mount-gating-audit/default.nix' 's|lib.hasPrefix "-" p|lib.hasPrefix "-never" p|'
+	run_case mountgating fixture-stripped mount-gating-audit-contract fail 'the guard must flag an ungated ReadWritePaths-under-/mnt/ unit' \
+		'tests/mount-gating-audit-contract.nix' 's|/mnt/pool/backups/cv|/srv/plain/backups/cv|'
+}
+
+group_memwatermark() {
+	run_case memwatermark green-control memory-watermark-audit-contract pass - \
+		'modules/memory-watermark-audit/default.nix' '-'
+	run_case memwatermark threshold-neutered memory-watermark-audit-contract fail 'the guard must flag a sub-50% watermark' \
+		'modules/memory-watermark-audit/default.nix' 's|high \* 2 < max|high * 99 < max|'
+	run_case memwatermark fixture-stripped memory-watermark-audit-contract fail 'the guard must flag a sub-50% watermark' \
+		'tests/memory-watermark-audit-contract.nix' 's|MemoryMax = "2G";|MemoryMax = "512M";|'
+}
+
+group_dynamicuser() {
+	run_case dynamicuser green-control dynamic-user-audit-contract pass - \
+		'modules/dynamic-user-audit/default.nix' '-'
+	run_case dynamicuser detection-neutered dynamic-user-audit-contract fail 'the guard must flag a secret owned by a DynamicUser name' \
+		'modules/dynamic-user-audit/default.nix' 's|builtins.elem owner dynamicUserNames|false|'
+	run_case dynamicuser fixture-stripped dynamic-user-audit-contract fail 'the guard must flag a secret owned by a DynamicUser name' \
+		'tests/dynamic-user-audit-contract.nix' 's|owner = "dynapp";|owner = "root";|'
+}
+
+group_capgrant() {
+	run_case capgrant green-control capability-grant-audit-contract pass - \
+		'modules/capability-grant-audit/default.nix' '-'
+	run_case capgrant detection-neutered capability-grant-audit-contract fail 'the guard must flag ungranted DAC caps' \
+		'modules/capability-grant-audit/default.nix' 's|builtins.elem c dacCaps|false|'
+	run_case capgrant allow-broken capability-grant-audit-contract fail 'the guard must flag ungranted DAC caps' \
+		'modules/capability-grant-audit/default.nix' 's|!builtins.elem name cfg.allow|false|'
+	run_case capgrant fixture-stripped capability-grant-audit-contract fail 'the guard must flag ungranted DAC caps' \
+		'tests/capability-grant-audit-contract.nix' 's|User = "app";|User = "root";|'
 }
 pids=()
 for g in $ALL_GROUPS; do
