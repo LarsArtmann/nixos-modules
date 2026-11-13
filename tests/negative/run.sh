@@ -121,7 +121,10 @@ run_case bootmirror green-control boot-mirror-contract pass - \
 	'modules/boot-mirror/default.nix' '-'
 run_case bootmirror watcher-dropped boot-mirror-contract fail 'PathChanged must watch' \
 	'modules/boot-mirror/default.nix' 's|loader/entries"\];|loader/entriez"];|'
-run_case bootmirror condition-dropped boot-mirror-contract fail 'ConditionPathIsMountPoint' \
+# The condition mutation trips the module's OWN self-pinned assertion (its
+# message wins over the test pin — the contract gate surfaces module
+# assertions first), so the marker is the module's wording.
+run_case bootmirror condition-dropped boot-mirror-contract fail 'the mount condition must stay' \
 	'modules/boot-mirror/default.nix' 's|ConditionPathIsMountPoint = mirror;|ConditionPathIsMountPoint = src;|'
 run_case bootmirror nofail-dropped boot-mirror-contract fail 'stay nofail' \
 	'modules/boot-mirror/default.nix' 's|"nofail"|"nofail-mutated"|'
