@@ -16,6 +16,19 @@
         fsType = "ext4";
       };
       boot.loader.grub.devices = ["nodev"];
+      # Class 7 deliberately includes nixpkgs-generated units in scope, and
+      # the floating unstable base set carries unbounded boot-blocking
+      # oneshots (linger-users, logrotate-checkconf, post-boot, resolvconf —
+      # the same units the SystemNix fleet floors via its house defaults).
+      # A correct consumer either floors them (as here) or allowlists them;
+      # when unstable grows a NEW unbounded oneshot this check goes red on
+      # purpose — that is the audit surfacing a real base-set regression.
+      systemd.services = {
+        linger-users.serviceConfig.TimeoutStartSec = "5min";
+        logrotate-checkconf.serviceConfig.TimeoutStartSec = "5min";
+        post-boot.serviceConfig.TimeoutStartSec = "5min";
+        resolvconf.serviceConfig.TimeoutStartSec = "5min";
+      };
     }
   ];
   auditFailures = modules:

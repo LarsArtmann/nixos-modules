@@ -216,7 +216,7 @@ group_startlimit() {
 	run_case startlimit green-control start-limit-audit-contract pass - \
 		'modules/start-limit-audit/default.nix' '-'
 	run_case startlimit detection-neutered start-limit-audit-contract fail 'must flag a StartLimitBurst-in-serviceConfig offender' \
-		'modules/start-limit-audit/default.nix' 's|"StartLimitBurst"|"StartLimitBurstMutated"|g'
+	'modules/start-limit-audit/default.nix' 's|? StartLimitBurst|? StartLimitBurstMutated|'
 	run_case startlimit fixture-stripped start-limit-audit-contract fail 'must flag a StartLimitBurst-in-serviceConfig offender' \
 		'tests/start-limit-audit-contract.nix' 's|StartLimitBurst = 5;|enable = true;|'
 }
@@ -234,11 +234,11 @@ group_shapeaudit() {
 	run_case shapeaudit green-control systemd-shape-audit-contract pass - \
 		'modules/systemd-shape-audit/default.nix' '-'
 	run_case shapeaudit class1-neutered systemd-shape-audit-contract fail 'Type=oneshot combined with an invalid Restart' \
-		'modules/systemd-shape-audit/default.nix' 's|^        "always"$|        "always-mutated"|'
-	run_case shapeaudit class7-neutered systemd-shape-audit-contract fail 'unbounded TimeoutStartSec' \
-		'modules/systemd-shape-audit/default.nix' 's|"multi-user.target"|"multi-user-mutated.target"|'
-	run_case shapeaudit class9-neutered systemd-shape-audit-contract fail 'nested inside unitConfig' \
-		'modules/systemd-shape-audit/default.nix' 's|^        "TimeoutStartSec"$|        "TimeoutStartSec-mutated"|'
+	'modules/systemd-shape-audit/default.nix' 's|^    "always"$|    "always-mutated"|'
+run_case shapeaudit class7-neutered systemd-shape-audit-contract fail 'unbounded TimeoutStartSec' \
+	'modules/systemd-shape-audit/default.nix' 's|"multi-user.target"|"multi-user-mutated.target"|'
+run_case shapeaudit class9-neutered systemd-shape-audit-contract fail 'nested inside unitConfig' \
+	'modules/systemd-shape-audit/default.nix' 's|^    "TimeoutStartSec"$|    "TimeoutStartSec-mutated"|'
 	run_case shapeaudit class1-fixture-stripped systemd-shape-audit-contract fail 'class marker missing' \
 		'tests/systemd-shape-audit-contract.nix' 's|Restart = "always";|Restart = "no";|'
 }
