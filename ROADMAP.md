@@ -67,17 +67,12 @@ Raw ideas:
   (`checks.*.options-readme-drift`, shipped 2026-11-13 as SUPERB T11 — the
   tables themselves were added then, rendered from options-json); the
   remaining idea is auto-GENERATING them wholesale
-- boot-mirror runtime VM leg — the sync script's bootctl/rsync/diff path has
-  never executed inside this repo's test net
 - Renovate app for flake inputs (the nixpkgs unstable pin) — owner opt-in:
   Dependabot covers github-actions since 2026-11-13 (T8); flake.lock stays
   manual (`nix flake update` + full gates) until the app is installed
 - Docs automation: per-module option tables generated from the options-json
   check output; FEATURES infra table split shipped vs pending; the lib/README
   fork ledger with per-helper SystemNix consumer counts, auto-generated
-- A lint/review rule against unparenthesized selects over applications
-  (`f x y .attr` — the session's phantom-falsehood class), e.g. a statix
-  custom rule
 
 ### 3. Ship eval-time audit gates as modules
 
