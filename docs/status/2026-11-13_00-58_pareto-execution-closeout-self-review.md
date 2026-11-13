@@ -136,34 +136,34 @@ documented deletions.
 
 ## f) Next tasks (ranked; routed — TODO_LIST 11 rows / ROADMAP 17 bullets after this harvest)
 
-| # | Task | Impact | Effort | Route |
-|---|------|--------|--------|-------|
-| 1 | Push master + v0.1.0 tag (explicit owner request required) | High | S | §g Q1 |
-| 2 | Verify CI first run on push; flip FEATURES 🟡→🟢; verify action refs exist | Med | S | TODO_LIST |
-| 3 | Apply parseMemoryBytes fix to the SystemNix fork | Med | S | TODO_LIST (BLOCKED) |
-| 4 | Absorb watch.sh comment divergence SystemNix-side | Low | S | TODO_LIST (BLOCKED) |
-| 5 | `.config/metadata.yaml` ownership | Low | S | TODO_LIST (BLOCKED) + §g Q2 |
-| 6 | options-json bite-proof leg | Med | S | TODO_LIST |
-| 7 | lib-eval: 5 remaining Class-B-only helpers | Med | M | TODO_LIST |
-| 8 | Document mergeIt approximation in the test header | Low | S | TODO_LIST |
-| 9 | Investigate + document --rebuild semantics; re-word the VM evidence claims | Low | S | TODO_LIST |
-| 10 | Mark the SUPERB plan EXECUTED (header banner) | Low | S | TODO_LIST |
-| 11 | CHANGELOG [0.1.0] tag-ref link + version-bump flow doc | Low | S | TODO_LIST |
-| 12 | Standing SystemNix parity diff (carries 2 divergences) | Med | M | ROADMAP t1 |
-| 13 | Consumer migration batches → the kill (109 harden files) | Med | L | ROADMAP t1 |
-| 14 | dual-wan module migration | Med | L | ROADMAP t2 |
-| 15 | Port-registry audit module | Med | L | ROADMAP t3 |
-| 16 | Gatus-coverage audit module (shared scan surface) | Med | L | ROADMAP t3 |
-| 17 | boot-mirror contract single-sourcing / drift gate | Med | M | ROADMAP t2 |
-| 18 | Module README options-table drift guard | Low | M | ROADMAP t2 |
-| 19 | boot-mirror runtime VM leg | Med | L | ROADMAP t2 |
-| 20 | Renovate/Dependabot for flake inputs (+ CI action pinning, §g Q3) | Low | M | ROADMAP t2 |
-| 21 | Harness devShell (bash/git/rsync) + run.sh --help + parallel legs | Low | M | ROADMAP (ergonomics) |
-| 22 | Auto-count check: tests/*.nix vs flake wiring (kills the d.3 class) | Low | S | ROADMAP (ergonomics) |
-| 23 | Per-module option tables generated from options-json output | Low | M | ROADMAP (docs automation) |
-| 24 | FEATURES infra table split shipped vs pending | Low | S | ROADMAP (docs automation) |
-| 25 | lib/README fork ledger with per-helper SystemNix consumer counts, generated | Low | M | ROADMAP (docs automation) |
-| 26 | Statix custom rule: unparenthesized select over application | Low | M | ROADMAP |
+| #  | Task                                                                        | Impact | Effort | Route                       |
+| -- | --------------------------------------------------------------------------- | ------ | ------ | --------------------------- |
+| 1  | Push master + v0.1.0 tag (explicit owner request required)                  | High   | S      | §g Q1                       |
+| 2  | Verify CI first run on push; flip FEATURES 🟡→🟢; verify action refs exist  | Med    | S      | TODO_LIST                   |
+| 3  | Apply parseMemoryBytes fix to the SystemNix fork                            | Med    | S      | TODO_LIST (BLOCKED)         |
+| 4  | Absorb watch.sh comment divergence SystemNix-side                           | Low    | S      | TODO_LIST (BLOCKED)         |
+| 5  | `.config/metadata.yaml` ownership                                           | Low    | S      | TODO_LIST (BLOCKED) + §g Q2 |
+| 6  | options-json bite-proof leg                                                 | Med    | S      | TODO_LIST                   |
+| 7  | lib-eval: 5 remaining Class-B-only helpers                                  | Med    | M      | TODO_LIST                   |
+| 8  | Document mergeIt approximation in the test header                           | Low    | S      | TODO_LIST                   |
+| 9  | Investigate + document --rebuild semantics; re-word the VM evidence claims  | Low    | S      | TODO_LIST                   |
+| 10 | Mark the SUPERB plan EXECUTED (header banner)                               | Low    | S      | TODO_LIST                   |
+| 11 | CHANGELOG [0.1.0] tag-ref link + version-bump flow doc                      | Low    | S      | TODO_LIST                   |
+| 12 | Standing SystemNix parity diff (carries 2 divergences)                      | Med    | M      | ROADMAP t1                  |
+| 13 | Consumer migration batches → the kill (109 harden files)                    | Med    | L      | ROADMAP t1                  |
+| 14 | dual-wan module migration                                                   | Med    | L      | ROADMAP t2                  |
+| 15 | Port-registry audit module                                                  | Med    | L      | ROADMAP t3                  |
+| 16 | Gatus-coverage audit module (shared scan surface)                           | Med    | L      | ROADMAP t3                  |
+| 17 | boot-mirror contract single-sourcing / drift gate                           | Med    | M      | ROADMAP t2                  |
+| 18 | Module README options-table drift guard                                     | Low    | M      | ROADMAP t2                  |
+| 19 | boot-mirror runtime VM leg                                                  | Med    | L      | ROADMAP t2                  |
+| 20 | Renovate/Dependabot for flake inputs (+ CI action pinning, §g Q3)           | Low    | M      | ROADMAP t2                  |
+| 21 | Harness devShell (bash/git/rsync) + run.sh --help + parallel legs           | Low    | M      | ROADMAP (ergonomics)        |
+| 22 | Auto-count check: tests/*.nix vs flake wiring (kills the d.3 class)         | Low    | S      | ROADMAP (ergonomics)        |
+| 23 | Per-module option tables generated from options-json output                 | Low    | M      | ROADMAP (docs automation)   |
+| 24 | FEATURES infra table split shipped vs pending                               | Low    | S      | ROADMAP (docs automation)   |
+| 25 | lib/README fork ledger with per-helper SystemNix consumer counts, generated | Low    | M      | ROADMAP (docs automation)   |
+| 26 | Statix custom rule: unparenthesized select over application                 | Low    | M      | ROADMAP                     |
 
 ## g) Questions (cannot be answered from this repo)
 

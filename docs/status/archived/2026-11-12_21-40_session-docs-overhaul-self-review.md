@@ -133,35 +133,35 @@ additive except the two false/stale claims replaced in place.
 
 ## f) Next tasks (ranked; 1-10 → TODO_LIST, 11+ → TODO_LIST/ROADMAP as marked)
 
-| # | Task | Impact | Effort | Category | Route |
-|---|------|--------|--------|----------|-------|
-~~| 1 | Align FEATURES.md evidence standard (serviceTypes vs parity-class helpers) | High | S | Quality | TODO_LIST (new) |~~ DONE 2026-11-12 — 3 evidence classes defined; serviceTypes 🟢 Class B→A
-~~| 2 | wifi-failover negative mutation legs (gateway + dual-wan assertions) | High | M | Quality | TODO_LIST |~~ DONE 2026-11-12 — wifi-failover-contract + wififailover group (marker-proven)
-~~| 3 | Lib eval tests: harden lifecycle-throw, MemoryHigh derivation, parseMemoryBytes, extractPortLiterals forms, mkPortGuard assert | High | M-L | Quality | TODO_LIST |~~ DONE 2026-11-12 — checks.*.lib-eval, 53 contracts + lib harness group; found the real bare-byte parseMemoryBytes crash
-~~| 4 | dprint-stability pass over archived markers (fmt → check-rows again) | Med | S | Quality | TODO_LIST (new) |~~ RESOLVED 2026-11-12 — dprint.json removed (no md formatter exists); gates re-run clean
-~~| 5 | watch.sh stale GW comment fix (parity-coordinated) | Med | S | Cleanup | TODO_LIST (blocked on g.1) |~~ DONE 2026-11-12 — fixed unilaterally; comment-only divergence noted for the parity diff
-~~| 6 | aarch64: run boot-mirror-contract + module-list on both systems | Med | S | Quality | TODO_LIST |~~ DONE 2026-11-12 — all pure checks evaluate on aarch64 (--all-systems --no-build green)
-~~| 7 | options.json render check per module (proves the provenance claim mechanically; module-list records paths only) | Med | M | Quality | TODO_LIST (new) |~~ DONE 2026-11-12 — checks.*.options-json: 4 modules, 40 options, provenance proven
-~~| 8 | dprint role: wire into treefmt or delete dprint.json (ghost config) | Low | S | Cleanup | TODO_LIST |~~ DONE 2026-11-12 — deleted; remote-fetched WASM plugins cannot run hermetically
-~~| 9 | Negative-harness flake app / devShell entry | Low | S | Quality | TODO_LIST |~~ DONE 2026-11-12 — nix run .#negative-tests
-~~| 10 | Fresh (non-cached) wifi-failover-vm run to re-prove the VM leg | Low | S | Quality | TODO_LIST (new, small) |~~ DONE 2026-11-12 — --rebuild on all 4 VMs + one fully fresh wifi-failover-vm run
-~~| 11 | First git tag (v0.1.0) + Keep-a-Changelog version section | Med | S | Process | owner decision |~~ DONE 2026-11-13 — v0.1.0 tagged locally (push awaits explicit owner request)
-~~| 12 | GitHub Actions CI running nix flake check (flips SECURITY.md line back) | Med | M | Infra | owner decision |~~ DONE 2026-11-12 — workflow shipped; first run pending next push
-~~| 13 | docs-gates adoption + `.docs-gates.json` | Med | S | Process | owner decision (g.2) |~~ DONE 2026-11-12 — adopted, .docs-gates.json seeded, baseline all-green
-~~| 14 | boot-mirror contract single-sourcing / drift gate | Med | M | Quality | ROADMAP |~~ ROUTED 2026-11-13 — ROADMAP theme 2 (raw idea, parked until triplication bites)
-~~| 15 | Module README options-table drift guard | Low | M | Docs | ROADMAP |~~ ROUTED 2026-11-13 — ROADMAP theme 2
-~~| 16 | boot-mirror runtime VM leg (bootctl/rsync/diff script never executed in-repo) | Med | L | Quality | ROADMAP |~~ ROUTED 2026-11-13 — ROADMAP theme 2
-~~| 17 | dual-wan module migration | Med | L | Feature | ROADMAP |~~ ROUTED 2026-11-13 — ROADMAP theme 2
-~~| 18 | Eval-time audit gate modules (port-registry, gatus-coverage) | Med | L | Feature | ROADMAP |~~ ROUTED 2026-11-13 — ROADMAP theme 3
-~~| 19 | Standing SystemNix parity diff until the kill | Med | M | Quality | ROADMAP |~~ ROUTED 2026-11-13 — ROADMAP theme 1 (now carries 2 documented divergences)
-~~| 20 | The kill: re-point SystemNix lib at this flake | Med | M | Infra | ROADMAP |~~ ROUTED 2026-11-13 — ROADMAP theme 1
-~~| 21 | deadnix + statix legs in treefmt | Low | S | Quality | TODO when picked up |~~ DONE 2026-11-12 — wired; 5 idiom fixes applied
-~~| 22 | Renovate/Dependabot for flake inputs (nixpkgs unstable pin) | Low | M | Infra | ROADMAP |~~ ROUTED 2026-11-13 — ROADMAP theme 2
-~~| 23 | README: license mention + design-rules pointer (CONTRIBUTING) | Low | S | Docs | TODO when picked up |~~ DONE 2026-11-12 — MIT section + contribution pointer
-~~| 24 | `.gitignore` buildflow-managed block without `.buildflow.yml` — keep or remove | Low | S | Cleanup | TODO when picked up |~~ DONE 2026-11-12 — replaced with curated list
-~~| 25 | Flake description "eval-time audit gates" — soften charter or ship one (ties to #18) | Low | S | Docs | TODO when picked up |~~ DONE 2026-11-12 — description reworded to the shipped surface
-~~| 26 | Re-run docs-health VERIFY after this report lands → establish post-fix baseline score | Low | M | Process | next session |~~ DONE 2026-11-13 — Accuracy 9.5 / Fitness 8.5 (see the rescore report)
-~~| 27 | Validate TODO effort estimates during first execution pass | Low | S | Process | continuous |~~ DONE 2026-11-13 — validated: plan estimates held within ~±30% (e.g. T1 60m incl. one red fix; T5-T8 collapsed into one 53-contract check)
+| #  | Task | Impact                                                                                                                         | Effort | Category | Route   |
+| -- | ---- | ------------------------------------------------------------------------------------------------------------------------------ | ------ | -------- | ------- |
+| ~~ | 1    | Align FEATURES.md evidence standard (serviceTypes vs parity-class helpers)                                                     | High   | S        | Quality |
+| ~~ | 2    | wifi-failover negative mutation legs (gateway + dual-wan assertions)                                                           | High   | M        | Quality |
+| ~~ | 3    | Lib eval tests: harden lifecycle-throw, MemoryHigh derivation, parseMemoryBytes, extractPortLiterals forms, mkPortGuard assert | High   | M-L      | Quality |
+| ~~ | 4    | dprint-stability pass over archived markers (fmt → check-rows again)                                                           | Med    | S        | Quality |
+| ~~ | 5    | watch.sh stale GW comment fix (parity-coordinated)                                                                             | Med    | S        | Cleanup |
+| ~~ | 6    | aarch64: run boot-mirror-contract + module-list on both systems                                                                | Med    | S        | Quality |
+| ~~ | 7    | options.json render check per module (proves the provenance claim mechanically; module-list records paths only)                | Med    | M        | Quality |
+| ~~ | 8    | dprint role: wire into treefmt or delete dprint.json (ghost config)                                                            | Low    | S        | Cleanup |
+| ~~ | 9    | Negative-harness flake app / devShell entry                                                                                    | Low    | S        | Quality |
+| ~~ | 10   | Fresh (non-cached) wifi-failover-vm run to re-prove the VM leg                                                                 | Low    | S        | Quality |
+| ~~ | 11   | First git tag (v0.1.0) + Keep-a-Changelog version section                                                                      | Med    | S        | Process |
+| ~~ | 12   | GitHub Actions CI running nix flake check (flips SECURITY.md line back)                                                        | Med    | M        | Infra   |
+| ~~ | 13   | docs-gates adoption + `.docs-gates.json`                                                                                       | Med    | S        | Process |
+| ~~ | 14   | boot-mirror contract single-sourcing / drift gate                                                                              | Med    | M        | Quality |
+| ~~ | 15   | Module README options-table drift guard                                                                                        | Low    | M        | Docs    |
+| ~~ | 16   | boot-mirror runtime VM leg (bootctl/rsync/diff script never executed in-repo)                                                  | Med    | L        | Quality |
+| ~~ | 17   | dual-wan module migration                                                                                                      | Med    | L        | Feature |
+| ~~ | 18   | Eval-time audit gate modules (port-registry, gatus-coverage)                                                                   | Med    | L        | Feature |
+| ~~ | 19   | Standing SystemNix parity diff until the kill                                                                                  | Med    | M        | Quality |
+| ~~ | 20   | The kill: re-point SystemNix lib at this flake                                                                                 | Med    | M        | Infra   |
+| ~~ | 21   | deadnix + statix legs in treefmt                                                                                               | Low    | S        | Quality |
+| ~~ | 22   | Renovate/Dependabot for flake inputs (nixpkgs unstable pin)                                                                    | Low    | M        | Infra   |
+| ~~ | 23   | README: license mention + design-rules pointer (CONTRIBUTING)                                                                  | Low    | S        | Docs    |
+| ~~ | 24   | `.gitignore` buildflow-managed block without `.buildflow.yml` — keep or remove                                                 | Low    | S        | Cleanup |
+| ~~ | 25   | Flake description "eval-time audit gates" — soften charter or ship one (ties to #18)                                           | Low    | S        | Docs    |
+| ~~ | 26   | Re-run docs-health VERIFY after this report lands → establish post-fix baseline score                                          | Low    | M        | Process |
+| ~~ | 27   | Validate TODO effort estimates during first execution pass                                                                     | Low    | S        | Process |
 
 ## g) Questions (cannot be answered from this repo)
 
