@@ -8,10 +8,11 @@
 #      is matched to the mirror's counter BEFORE the forward copy (the
 #      counters-survive-the-mirror contract), and a blessed entry drops its
 #      stale counting twin.
-#   3. degradation: with the mirror partition deleted, the sync's
-#      RequiresMountsFor dependency-fails the start job (Result=dependency:
-#      the script never runs, no partial copy) — a detached mirror degrades
-#      boot nothing (multi-user reached with the mirror absent).
+#   3. degradation: with the mount unit masked (a detached mirror's
+#      systemd reality), the sync's RequiresMountsFor dependency-fails the
+#      start job (Result=dependency: the script never runs, no partial
+#      copy) — a detached mirror degrades boot nothing (multi-user was
+#      reached with the mirror absent from boot).
 #   4. loud failure: a read-only mirror fails the unit (partial copy must
 #      never be called a success — the diff-gate posture).
 #
@@ -144,22 +145,20 @@ _: {
     # above: multi-user was reached mirror-less). (A plain umount is NOT
     # degradation: the pulled mount job would just remount vdb1.)
     machine.succeed("umount /boot-mirror && udevadm settle")
-    # Detach the mirror: drop the kernel partition + node. Transient holders
-    # right after the umount (mount-unit teardown, udev probing) make the
-    # first BLKPG delete race EBUSY — retry until the node is truly gone
-    # (sfdisk --delete alone rewrites the table but left the node
-    # mountable: the pulled mount job remounted it and bootctl failed
-    # exit-code instead of the dependency path).
-    machine.succeed(
-        "for i in $(seq 1 10); do partx -d --nr 1 /dev/vdb && break; sleep 1; done;"
-        " test ! -e /dev/vdb1"
-    )
+    # Detach at the systemd level: mask the mount unit — exactly what the
+    # sync's RequiresMountsFor sees when a mirror cannot mount (disk gone,
+    # fs unreadable). Kernel-level unplug proved RACY here: sfdisk
+    # --delete left the node mountable (the pulled mount job remounted it,
+    # bootctl then failed exit-code), and partx BLKPG delete returned EBUSY
+    # 10/10 on the virtio disk. (A plain umount is NOT degradation either:
+    # the pulled mount job would just remount vdb1.)
+    machine.succeed("systemctl mask 'boot\\x2dmirror.mount'")
     machine.fail("systemctl restart boot-mirror-sync.service")
-    # Empirical systemd semantics (pinned): a detached mirror fails the
-    # start JOB through RequiresMountsFor — Result=dependency — so the sync
-    # SCRIPT never runs against an absent mirror: no partial copy, no silent
-    # success. Boot-level degradation (never a stall) is already proven at
-    # the top: multi-user was reached with the mirror absent from boot.
+    # Empirical systemd semantics (pinned): the start JOB fails through
+    # RequiresMountsFor with Result=dependency — the sync SCRIPT never
+    # runs against an unusable mirror: no partial copy, no silent success.
+    # Boot-level degradation (never a stall) is already proven at the top:
+    # multi-user was reached with the mirror absent from boot.
     result = machine.succeed(
         "systemctl show boot-mirror-sync.service -p Result --value"
     ).strip()
@@ -167,15 +166,7 @@ _: {
 
     # 4. Loud failure: a read-only mirror (partial-copy stand-in) fails the
     # unit — the diff-gate posture: never call a partial mirror current.
-    machine.succeed(
-        "printf 'label: gpt\\ntype=C12A7328-F81F-11D2-BA4B-00A0C93EC93B\\n'"
-        " | sfdisk --wipe always /dev/vdb && udevadm settle"
-    )
-    machine.succeed(
-        "for i in $(seq 1 20); do [ -b /dev/vdb1 ] && break; sleep 1; done;"
-        " test -b /dev/vdb1"
-    )
-    machine.succeed("mkfs.vfat -n MIRRORESP /dev/vdb1 && udevadm settle")
+    machine.succeed("systemctl unmask 'boot\\x2dmirror.mount'")
     machine.succeed("mount /dev/vdb1 /boot-mirror")
     machine.succeed("mount -o remount,ro /boot-mirror")
     machine.succeed("touch /boot/loader/entries/trigger-ro.conf")
