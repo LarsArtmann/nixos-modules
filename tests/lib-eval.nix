@@ -250,7 +250,7 @@
     (expect (memwrap.name == "cargo-test-memlimit") "wrapWithMemoryLimit: wrapper name must be <name>-memlimit")
     (expect (lib.hasInfix "-p MemoryMax=2G" memwrap.text) "wrapWithMemoryLimit: the transient scope must carry MemoryMax")
     (expect (lib.hasInfix "-p IOSchedulingClass=best-effort" memwrap.text && lib.hasInfix "-p IOSchedulingPriority=7" memwrap.text && lib.hasInfix "-p Nice=10" memwrap.text) "wrapWithMemoryLimit: I/O defaults must match ioTier.build (BE/7 + Nice=10 — NOT idle class, which would stall foreground builds)")
-    (expect (lib.hasInfix "exec systemd-run \\\\" memwrap.text && lib.hasInfix "--user --collect --wait" memwrap.text) "wrapWithMemoryLimit: must systemd-run into a user scope, collect+wait")
+    (expect (lib.hasInfix "exec systemd-run \\" memwrap.text && lib.hasInfix "--user --collect --wait" memwrap.text) "wrapWithMemoryLimit: must systemd-run into a user scope, collect+wait")
     (expect (lib.hasInfix "cargo test --all" memwrap.text) "wrapWithMemoryLimit: command + extraArgs must be escaped into the invocation")
     (expect (ioTier.interactive.IOSchedulingClass == "best-effort" && ioTier.interactive.IOSchedulingPriority == 1) "ioTier: interactive must stay BE/1 (SSH survives build storms)")
     (expect (ioTier.build.IOSchedulingPriority == 7 && ioTier.build.Nice == 10) "ioTier.build must stay BE/7 + Nice=10 (batch builds yield to everything)")

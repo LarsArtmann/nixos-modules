@@ -175,6 +175,8 @@ run_case lib lifecycle-guard-stripped lib-eval fail 'lifecycle keys must throw' 
 	'lib/systemd.nix' 's|^    "ExecStart"$|    "ExecStartMutated"|'
 run_case lib fs-guard-stripped lib-eval fail 'contamination guard must throw' \
 	'lib/filesystems.nix' 's|prefix = "discard=async";|prefix = "discard=asyncMutated";|'
+run_case lib iotier-drifted lib-eval fail 'ioTier.build must stay BE/7' \
+	'lib/default.nix' 's|IOSchedulingPriority = 7;|IOSchedulingPriority = 3;|'
 
 # ── optionsjson: the path-provenance proof (tests/options-json.nix) must
 #    bite — a wrong expected-suffix makes every declaration "outside
