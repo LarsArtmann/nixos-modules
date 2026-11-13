@@ -99,6 +99,10 @@ removed on sight).
    re-run, all green" — the output ("checking outputs of...") may mean
    output-comparison, not VM re-execution. I did not verify the semantics
    before claiming; only wifi-failover-vm has unambiguous fresh-run evidence.
+   ~~Open caveat.~~ RESOLVED 2026-11-13 (SUPERB T3): `--rebuild` on nix
+   2.34.9 re-EXECUTES the builder and compares the fresh result against the
+   existing store paths (`-L` shows the runCommand stdout re-emitted; exit 0
+   = identical). The v0.1.0 "deterministic re-run" wording is accurate.
 8. **mergeIt trust.** lib-eval merges serviceConfig via `types.anything` and
    I asserted generator shapes through it without documenting that this is
    an approximation of the real NixOS option merge.

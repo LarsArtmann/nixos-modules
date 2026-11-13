@@ -17,6 +17,11 @@ nix build .#checks.x86_64-linux.wifi-failover-vm      # the VM test alone
 bash tests/negative/run.sh    # mutation tests — NOT part of flake check
 CASES=bootmirror bash tests/negative/run.sh  # filter one case group
 KEEP=1 bash tests/negative/run.sh            # keep mutated copy for triage
+nix build --rebuild -L .#checks.x86_64-linux.module-list  # re-EXECUTE a
+                              # build and compare against the existing store
+                              # paths (nix 2.34.9: "rebuild + compare" — exit 0
+                              # means the fresh build was identical; use -L to
+                              # see the builder actually run)
 ```
 
 - `nix flake check` on x86_64-linux builds the wifi-failover VM test — slow.
