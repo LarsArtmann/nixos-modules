@@ -60,9 +60,17 @@
     ];
   };
   inherit (eval.config) systemd;
+  # Evaluating config.assertions forces every module assertion here — a
+  # violation throws with its own message, not at deploy time. (The earlier
+  # variant forced system.build.toplevel.drvPath into the derivation env;
+  # a .drv-path env value cannot be realized on a fresh store — the CI
+  # first-run failure, run 43336330142.)
+  failedAssertions =
+    map (a: a.message)
+    (lib.filter (a: !a.assertion) eval.config.assertions);
   journald = systemd.services.systemd-journald;
   caddy = systemd.services.caddy;
-  contract =
+  pins =
     lib.throwIfNot (lib.elem "var-log-journal.mount" journald.after)
     "hot-tier contract: journald must be ordered after the journal mount (the Before=sysinit landmine)"
     (lib.throwIfNot (lib.elem "var-log-journal.mount" journald.wants)
@@ -99,10 +107,12 @@
                           journalOptions = eval.config.fileSystems."/var/log/journal".options;
                           caddyOptions = eval.config.fileSystems."/var/log/caddy".options;
                         })))))))))));
+  contract =
+    if failedAssertions != []
+    then throw "hot-tier contract: module assertions failed:\n${lib.concatStringsSep "\n" failedAssertions}"
+    else pins;
 in
   pkgs.runCommand "hot-tier-contract" {
-    # Force the full eval (assertions included) at build-input time.
-    drv = eval.config.system.build.toplevel.drvPath;
     inherit contract;
     passAsFile = ["contract"];
   } ''

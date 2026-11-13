@@ -77,7 +77,7 @@
               # Forces evaluation of every discovered module path and records the
               # public surface; a change here shows up as a check-input diff.
               printf '%s\n' ${
-                lib.concatStringsSep " " (lib.mapAttrsToList (name: path: "${name}=${toString path}") nixosModules)
+                lib.concatStringsSep " " (lib.mapAttrsToList (name: path: "${name}=${path}") nixosModules)
               } > $out
               cat $out
             '';

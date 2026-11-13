@@ -38,7 +38,15 @@
               o.declarations)
         )
         own;
-      rendered = builtins.toJSON own;
+      # Render declarations relative to the module directory: the JSON stays
+      # context-free (a toJSON'd store path loses its string context and the
+      # embedded absolute path can dangle after GC) and options browsers read
+      # it better. Foreign declarations keep their absolute form — the
+      # provenance check below throws on them before the JSON ships.
+      relDecl = d: lib.removePrefix "${toString path}/" (toString d);
+      rendered =
+        builtins.toJSON
+        (map (o: o // {declarations = map relDecl o.declarations;}) own);
     in {
       inherit name;
       ownCount = builtins.length own;
@@ -62,7 +70,7 @@
         in every options browser.
       ''
     else "ok: ${toString (builtins.length perModule)} modules, ${toString totalOptions} options, all declarations inside their module paths";
-  jsons = lib.concatStringsSep " " (map (m: toString m.json) perModule);
+  jsons = lib.concatStringsSep " " (map (m: "${m.json}") perModule);
 in
   pkgs.runCommand "options-json" {
     summaryText = summary;

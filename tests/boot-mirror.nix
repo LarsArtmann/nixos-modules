@@ -28,12 +28,19 @@
       }
     ];
   };
-  # Forcing the toplevel drvPath forces the full config merge — any module
-  # assertion violation throws here, not at deploy time.
+  # Forcing the assertions list evaluates every module assertion here — a
+  # violation throws with its own message, not at deploy time. (The earlier
+  # variant forced system.build.toplevel.drvPath into the derivation env;
+  # a .drv-path env value cannot be realized on a fresh store — the CI
+  # first-run failure, run 43336330142 — and it approximated nothing beyond
+  # what evaluating config.assertions already does directly.)
+  failedAssertions =
+    map (a: a.message)
+    (lib.filter (a: !a.assertion) eval.config.assertions);
   inherit (eval.config) systemd fileSystems;
   pathUnit = systemd.paths.boot-mirror-sync;
   svc = systemd.services.boot-mirror-sync;
-  contract =
+  pins =
     lib.throwIfNot (pathUnit.pathConfig.PathChanged or null == ["/boot/loader/entries"])
     "boot-mirror contract: PathChanged must watch /boot/loader/entries"
     (lib.throwIfNot (pathUnit.pathConfig.Unit or null == "boot-mirror-sync.service")
@@ -59,10 +66,12 @@
                     IOSchedulingPriority = svc.serviceConfig.IOSchedulingPriority or null;
                     ProtectSystem = svc.serviceConfig.ProtectSystem;
                   }))))))));
+  contract =
+    if failedAssertions != []
+    then throw "boot-mirror contract: module assertions failed:\n${lib.concatStringsSep "\n" failedAssertions}"
+    else pins;
 in
   pkgs.runCommand "boot-mirror-contract" {
-    # Force the full eval (assertions included) at build-input time.
-    drv = eval.config.system.build.toplevel.drvPath;
     inherit contract;
     passAsFile = ["contract"];
   } ''

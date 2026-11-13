@@ -38,7 +38,15 @@
   svc = eval.config.systemd.services.hot-dir-migrate;
   timer = eval.config.systemd.timers.hot-dir-migrate;
   script = svc.script or "";
-  contract =
+  # Evaluating config.assertions forces every module assertion here — a
+  # violation throws with its own message, not at deploy time. (The earlier
+  # variant forced system.build.toplevel.drvPath into the derivation env;
+  # a .drv-path env value cannot be realized on a fresh store — the CI
+  # first-run failure, run 43336330142.)
+  failedAssertions =
+    map (a: a.message)
+    (lib.filter (a: !a.assertion) eval.config.assertions);
+  pins =
     lib.throwIfNot (svc.unitConfig.RequiresMountsFor or null == ["/mnt/hot"])
     "hot-dir-migrate contract: RequiresMountsFor must pin the MOUNT ROOT (226/NAMESPACE class)"
     (lib.throwIfNot (lib.hasInfix "util-linux" (lib.concatStringsSep " " (map toString svc.path)))
@@ -73,10 +81,12 @@
                               timerOnBootSec = timer.timerConfig.OnBootSec;
                               timerPersistent = timer.timerConfig.Persistent or null;
                             })))))))))))));
+  contract =
+    if failedAssertions != []
+    then throw "hot-dir-migrate contract: module assertions failed:\n${lib.concatStringsSep "\n" failedAssertions}"
+    else pins;
 in
   pkgs.runCommand "hot-dir-migrate-contract" {
-    # Force the full eval (assertions included) at build-input time.
-    drv = eval.config.system.build.toplevel.drvPath;
     inherit contract;
     passAsFile = ["contract"];
   } ''

@@ -48,13 +48,18 @@
   };
   svc = eval.config.systemd.services.wifi-failover;
   env = svc.serviceConfig.Environment;
-  contract =
-    # The interpolated prefix forces NixOS assertion checking (toplevel
-    # evaluation) BEFORE any pin below can throw — a violated module
-    # assertion must fail with ITS message, because the negative harness
-    # greps for the assertion markers (gateway-null, dual-wan-conflict).
-    "${eval.config.system.build.toplevel.drvPath}"
-    + lib.throwIfNot (builtins.any (e: lib.hasPrefix "GW=192.168.9.1" e) env)
+  # Evaluating config.assertions forces every module assertion — the
+  # gateway-resolution and dual-wan-conflict assertions throw here with
+  # THEIR messages BEFORE any pin below, so the negative harness greps
+  # (gateway-null, dual-wan-conflict) match the module's own words. (The
+  # earlier variant forced system.build.toplevel.drvPath into the contract
+  # string and derivation env; a .drv-path string context cannot be realized
+  # on a fresh store — the CI first-run failure, run 43336330142.)
+  failedAssertions =
+    map (a: a.message)
+    (lib.filter (a: !a.assertion) eval.config.assertions);
+  pins =
+    lib.throwIfNot (builtins.any (e: lib.hasPrefix "GW=192.168.9.1" e) env)
     "wifi-failover contract: the resolved gateway must be injected as the GW environment variable (the daemon re-adds the primary route via it)"
     (lib.throwIfNot (builtins.any (e: e == "ENO1_IF=eno1") env)
       "wifi-failover contract: the primary interface env var must reflect ethernetInterface"
@@ -74,10 +79,12 @@
                   inherit (svc) wantedBy;
                   execStart = builtins.toString svc.serviceConfig.ExecStart;
                 })))))));
+  contract =
+    if failedAssertions != []
+    then throw "wifi-failover contract: module assertions failed:\n${lib.concatStringsSep "\n" failedAssertions}"
+    else pins;
 in
   pkgs.runCommand "wifi-failover-contract" {
-    # Force the full eval (assertions included) at build-input time.
-    drv = eval.config.system.build.toplevel.drvPath;
     inherit contract;
     passAsFile = ["contract"];
   } ''
