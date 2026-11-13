@@ -103,11 +103,11 @@
     mkFilesystem-contamination = L:
       norm
       (!(builtins.tryEval
-          (L.mkFilesystem {
-            device = "/dev/sda1";
-            fsType = "ext4";
-            options = ["discard=async"];
-          }))
+        (L.mkFilesystem {
+          device = "/dev/sda1";
+          fsType = "ext4";
+          options = ["discard=async"];
+        }))
         .success);
     mkPoolDirUnit = L:
       norm
@@ -167,7 +167,7 @@
 
   results =
     lib.mapAttrs
-    (name: probe: {
+    (_name: probe: {
       collection = probe collectionLib;
       fork = probe forkLib;
     })
