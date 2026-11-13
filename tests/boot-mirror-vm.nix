@@ -9,10 +9,10 @@
 #      counters-survive-the-mirror contract), and a blessed entry drops its
 #      stale counting twin.
 #   3. degradation: with the mirror's fs zeroed (disk attached,
-#      filesystem unreadable), the sync's RequiresMountsFor fails the
-#      start job (Result=dependency: the script never runs, no partial
-#      copy) — a detached mirror degrades boot nothing (multi-user was
-#      reached with the mirror absent from boot).
+#      filesystem unreadable), the sync's start job dies on its
+#      RequiresMountsFor dependency (the mount carries exit-code; the
+#      script never runs, no partial copy) — a detached mirror degrades
+#      boot nothing (multi-user was reached with the mirror absent).
 #   4. loud failure: a read-only mirror fails the unit (partial copy must
 #      never be called a success — the diff-gate posture).
 #
@@ -156,15 +156,22 @@ _: {
         "dd if=/dev/zero of=/dev/vdb1 bs=512 count=4 && udevadm settle"
     )
     machine.fail("systemctl restart boot-mirror-sync.service")
-    # Empirical systemd semantics (pinned): the start JOB fails through
-    # RequiresMountsFor — Result=dependency — so the sync SCRIPT never
-    # runs against an unusable mirror: no partial copy, no silent success.
+    # Empirical systemd semantics (pinned): the start JOB dies on the
+    # RequiresMountsFor dependency ("dependency" is the JOB result, never
+    # written to the service — its Result stays 'success' from the last
+    # run); the MOUNT unit carries the failure, the service ends up
+    # inactive (deactivated by the restart's stop half, never re-run:
+    # no bootctl/rsync output above). No partial copy, no silent success.
     # Boot-level degradation (never a stall) is already proven at the top:
     # multi-user was reached with the mirror absent from boot.
-    result = machine.succeed(
-        "systemctl show boot-mirror-sync.service -p Result --value"
+    mount_result = machine.succeed(
+        "systemctl show 'boot\\x2dmirror.mount' -p Result --value"
     ).strip()
-    assert result == "dependency", f"expected Result=dependency, got {result!r}"
+    assert mount_result == "exit-code", f"expected the mount to carry the failure, got {mount_result!r}"
+    svc_state = machine.succeed(
+        "systemctl show boot-mirror-sync.service -p ActiveState --value"
+    ).strip()
+    assert svc_state == "inactive", f"the sync must not run against an unusable mirror: {svc_state!r}"
 
     # 4. Loud failure: a read-only mirror (partial-copy stand-in) fails the
     # unit — the diff-gate posture: never call a partial mirror current.
