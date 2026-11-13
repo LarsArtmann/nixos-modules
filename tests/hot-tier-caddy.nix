@@ -27,6 +27,25 @@
     ];
   };
 
+  # Runner-race fix (2026-11-13, third flake of the class): the boot
+  # transaction's DEVICE job is NOT gated by After=tlc-fmt — it queues
+  # with the transaction and carries the mount's device-timeout (5s),
+  # while the formatter took 9.1s wall on a loaded runner (device job
+  # timed out, formatter finished seconds later). Healthy node only: a
+  # 90s window; the degraded node keeps the 5s default (its fast-fail
+  # story is pinned).
+  entrySlow =
+    entry
+    // {
+      options =
+        map
+        (o:
+          if pkgs.lib.hasPrefix "x-systemd.device-timeout" o
+          then "x-systemd.device-timeout=90s"
+          else o)
+        entry.options;
+    };
+
   hotTierCaddyLogs = {
     services.hot-tier.enable = true;
     services.hot-tier.mounts.caddy-logs = {
@@ -106,7 +125,7 @@ in {
     system.stateVersion = lib.mkDefault "26.11";
     boot.supportedFilesystems = ["btrfs"];
     virtualisation.emptyDiskImages = [512];
-    virtualisation.fileSystems."/var/log/caddy" = entry;
+    virtualisation.fileSystems."/var/log/caddy" = entrySlow;
   };
 
   nodes.degraded = {lib, ...}: {
