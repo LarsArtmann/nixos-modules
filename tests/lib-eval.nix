@@ -9,7 +9,7 @@
   pkgs,
   collectionLib,
 }: let
-  inherit (collectionLib) harden hardenUser serviceTypes mkFilesystem mkPortGuard mkPoolDirUnit mkSqliteBackupUnit mkMetricTextfileCollector unitExecText extractPortLiterals;
+  inherit (collectionLib) harden hardenUser serviceTypes mkFilesystem mkPortGuard mkPoolDirUnit mkSqliteBackupUnit mkMetricTextfileCollector unitExecText extractPortLiterals mkStateDir mkSecretCheck mkDesktopNotifyService wrapWithMemoryLimit ioTier;
 
   # expect: returns null on success, the failure message otherwise. All
   # contracts below collect into `failures`; a non-empty list throws with
@@ -143,6 +143,36 @@
     ownerUnits = ["owner-svc.service"];
   };
 
+  # ── the five Class-B-only helpers (SUPERB T4: direct contracts where
+  #    previously only SystemNix-side consumers proved the shapes) ──
+  stateDirLine = mkStateDir "/var/lib/svc" "0750" "svc" "svcgrp";
+
+  secretCheck = mkSecretCheck pkgs {
+    name = "minio-root";
+    secretPath = "/run/secrets/minio-root";
+    message = "minio root secret is missing or empty";
+    extraCheck = "grep -q MINIO_ROOT '' $secret_path || exit 1";
+  };
+
+  notify = mkDesktopNotifyService pkgs {
+    name = "disk-watch";
+    description = "disk space check";
+    checkScript = "df / | tail -1";
+    runtimeInputs = [pkgs.coreutils];
+    user = "lars";
+    uid = "1000";
+  };
+  notifySvc = mergeIt notify.service.serviceConfig;
+
+  memwrap = wrapWithMemoryLimit pkgs {
+    name = "cargo-test";
+    maxMemory = "2G";
+    command = "cargo";
+    extraArgs = ["test" "--all"];
+  };
+
+  hardenedBuild = mergeIt (lib.mkMerge [(harden {}) ioTier.build]);
+
   contracts = [
     (expect lifecycleThrows "harden: lifecycle keys must throw (the oneshot+Restart=always crash-loop class)")
     (expect lifecycleThrowsPre "harden: lifecycle keys must throw on ExecStartPre+Restart (the oneshot+Restart=always crash-loop class)")
@@ -204,6 +234,30 @@
 
     (expect (!(builtins.tryEval badFs).success) "mkFilesystem: the contamination guard must throw on cross-filesystem options (discard=async on ext4)")
     (expect (goodFs.options == ["discard=async" "compress=zstd"] && goodFs.neededForBoot == true) "mkFilesystem: legal fs options and extra fileSystems attrs must round-trip (the …-pattern silent-drop class)")
+
+    (expect (stateDirLine == "d /var/lib/svc 0750 svc svcgrp -") "mkStateDir: must render the tmpfiles d-line shape (d/path/mode/user/group/-) — the shadow-dir contract every consumer greps for")
+    (expect (secretCheck.name == "check-minio-root") "mkSecretCheck: the script name must be check-<name>")
+    (expect (lib.hasInfix "secret_path=\"/run/secrets/minio-root\"" secretCheck.text) "mkSecretCheck: the script must embed the secret path")
+    (expect (lib.hasInfix "if [ ! -s \"$secret_path\" ]" secretCheck.text) "mkSecretCheck: the emptiness gate must be -s (empty file ≠ present secret — the empty-credential phantom-green class)")
+    (expect (lib.hasInfix "minio root secret is missing or empty" secretCheck.text) "mkSecretCheck: the failure message must land on stderr")
+    (expect (lib.hasInfix "grep -q MINIO_ROOT" secretCheck.text) "mkSecretCheck: extraCheck must be spliced into the script")
+    (expect (notify.timer.timerConfig.OnBootSec == "2min" && notify.timer.timerConfig.OnUnitActiveSec == "5min" && notify.timer.timerConfig.Persistent) "mkDesktopNotifyService: timer defaults must be boot-delay 2min / interval 5min / Persistent (catch-up after downtime)")
+    (expect (notify.timer.wantedBy == ["timers.target"]) "mkDesktopNotifyService: the timer must be wanted by timers.target")
+    (expect (notifySvc.Type == "oneshot" && notifySvc.User == "lars") "mkDesktopNotifyService: oneshot service running as the session user")
+    (expect (builtins.any (e: e == "DISPLAY=:0") (lib.toList notifySvc.Environment) && builtins.any (e: e == "XDG_RUNTIME_DIR=/run/user/1000") (lib.toList notifySvc.Environment)) "mkDesktopNotifyService: DISPLAY + XDG_RUNTIME_DIR must be injected for the notify path")
+    (expect (notifySvc.ProtectHome == false && notifySvc.NoNewPrivileges == false) "mkDesktopNotifyService: the harden relay must be neutralized exactly where the desktop needs it (ProtectHome/NoNewPrivileges false — notify + bus access)")
+    (expect (notifySvc.PrivateTmp or null != null) "mkDesktopNotifyService: the remaining harden fragment must still apply (PrivateTmp present through the mkMerge)")
+    (expect (memwrap.name == "cargo-test-memlimit") "wrapWithMemoryLimit: wrapper name must be <name>-memlimit")
+    (expect (lib.hasInfix "-p MemoryMax=2G" memwrap.text) "wrapWithMemoryLimit: the transient scope must carry MemoryMax")
+    (expect (lib.hasInfix "-p IOSchedulingClass=best-effort" memwrap.text && lib.hasInfix "-p IOSchedulingPriority=7" memwrap.text && lib.hasInfix "-p Nice=10" memwrap.text) "wrapWithMemoryLimit: I/O defaults must match ioTier.build (BE/7 + Nice=10 — NOT idle class, which would stall foreground builds)")
+    (expect (lib.hasInfix "exec systemd-run \\\\" memwrap.text && lib.hasInfix "--user --collect --wait" memwrap.text) "wrapWithMemoryLimit: must systemd-run into a user scope, collect+wait")
+    (expect (lib.hasInfix "cargo test --all" memwrap.text) "wrapWithMemoryLimit: command + extraArgs must be escaped into the invocation")
+    (expect (ioTier.interactive.IOSchedulingClass == "best-effort" && ioTier.interactive.IOSchedulingPriority == 1) "ioTier: interactive must stay BE/1 (SSH survives build storms)")
+    (expect (ioTier.build.IOSchedulingPriority == 7 && ioTier.build.Nice == 10) "ioTier.build must stay BE/7 + Nice=10 (batch builds yield to everything)")
+    (expect (ioTier.maintenance.IOSchedulingClass == "idle" && ioTier.maintenance.Nice == 10) "ioTier: maintenance must be idle-class + Nice=10 (scrub only when nothing needs I/O)")
+    (expect (ioTier.desktop.IOSchedulingPriority == 3 && ioTier.heavyDB.IOSchedulingPriority == 5 && ioTier.service.IOSchedulingPriority == 4) "ioTier: the tier ladder must stay 1/3/4/5/6/7 across interactive/desktop/service/heavyDB/background/build")
+    (expect (ioTier.background.IOSchedulingPriority == 6) "ioTier.background must stay BE/6 (the boot-mirror sync contract pins this)")
+    (expect (hardenedBuild.IOSchedulingPriority == 7 && hardenedBuild.ProtectSystem or null != null) "ioTier: mkMerge over (harden {}) must compose — I/O tier lands alongside the harden fragment, neither replaces the other")
   ];
 
   failures = builtins.filter (x: x != null) contracts;
