@@ -28,7 +28,6 @@
 
 | Task                                                                        | Status       | Impact | Effort | Evidence                                                                                                                                  |
 | --------------------------------------------------------------------------- | ------------ | ------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| VM workflow: retry-once on VM-step failure (runner races, Ubuntu-26 class)   | 🔴 `TODO`    | Med    | 15min  | Two runner races this week (mount settle, by-label symlink); a retry job step is cheaper than a red master                                    |
 | boot-mirror diff-gate harness leg (runtime bite for the `diff -r` gate)      | 🔴 `TODO`    | Med    | 30min  | The VM leg pins the degradation assert; the diff-gate itself has no mutation leg (needs an eval-visible pin first — gate is runtime-only)      |
 | SystemNix `flake.lib` anomaly: `harden` closure loses `lib.genAttrs`         | 🔴 `TODO`    | Med    | 30min  | Flagged 2026-11-13 (pre-existing); outlives my commit message only if tracked — fix or annotate SystemNix-side                                |
 | Harness: per-group log files surfaced on failure (parallel interleaves)      | 🔴 `TODO`    | Med    | 15min  | `tests/negative/run.sh` parallel mode prints interleaved group output; 48 cases now                                                          |
