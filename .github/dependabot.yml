@@ -1,3 +1,13 @@
+# Dependabot owns github-actions updates (active since 2026-11-13 — PR #1
+# was its first). Policy decision (SUPERB T8, Q3 resolved 2026-11-13):
+# FLOATING MAJOR TAGS (@vN), not SHA pins — Dependabot keeps them current,
+# the workflow has no secrets beyond the implicit GITHUB_TOKEN, and CI
+# re-proves every bump with the full flake check before merge.
+#
+# Flake inputs (nixpkgs tracks nixos-unstable): NO bot — manual
+# `nix flake update` + full gates (`nix flake check`, harness, parity
+# diff) per AGENTS.md. Automating that needs the Renovate app, an owner
+# opt-in recorded in ROADMAP.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -8,4 +18,6 @@ updates:
     groups:
       actions:
         patterns:
-          - '*'
+          - "*"
+    commit-message:
+      prefix: "chore(deps)"

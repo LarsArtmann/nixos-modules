@@ -190,6 +190,12 @@ environment override — renaming log lines in `watch.sh` breaks the test.
   fresh store — they pass on a warm store only (phantom-green class; fixed
   2026-11-13 by gating on `config.assertions` directly). Green since run
   43338694884 (VMs included). Never re-introduce drvPath-in-env forcing.
+- Dependency policy (T8, 2026-11-13): github-actions float on @vN major
+  tags and Dependabot maintains them (`.github/dependabot.yml`, weekly,
+  grouped; merge bump PRs only on a green CI run). Flake inputs stay
+  MANUAL: `nix flake update` + `nix flake check` + harness + parity diff
+  before pushing the lock (nixpkgs tracks unstable — expect churn).
+  Renovate automation for the lock is an owner opt-in (ROADMAP).
 - docs-gates (adopted 2026-11-12, config in `.docs-gates.json`, fleet
   defaults): `nix run github:Artmann-Technologies/docs-gates -- run .` gates
   freshness/audit-all/annotate/routing/cadence over the status-report corpus.

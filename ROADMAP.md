@@ -41,7 +41,9 @@ Raw ideas:
 - Module README options-table drift guard (same drift class as above)
 - boot-mirror runtime VM leg — the sync script's bootctl/rsync/diff path has
   never executed inside this repo's test net
-- Renovate/Dependabot for flake inputs (the nixpkgs unstable pin)
+- Renovate app for flake inputs (the nixpkgs unstable pin) — owner opt-in:
+  Dependabot covers github-actions since 2026-11-13 (T8); flake.lock stays
+  manual (`nix flake update` + full gates) until the app is installed
 - Test-net ergonomics: a devShell carrying the harness deps (bash/git/rsync),
   `run.sh --help` + parallel legs, and a tiny check that counts `tests/*.nix`
   vs flake-wired entries (the session's 7→8→10 count churn, mechanized)
