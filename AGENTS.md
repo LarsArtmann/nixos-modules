@@ -210,10 +210,14 @@ environment override — renaming log lines in `watch.sh` breaks the test.
   2026-11-13, and the `watch.sh` comment divergence dissolved when SystemNix
   delegated its wifi-failover module wholesale to this collection's flake
   input (no SystemNix copy remains; only the `networking.local.gateway`
-  feed lives there). SystemNix `flake.lib` anomaly (pre-existing, flagged
-  to owner): calling `harden` through the `flake.lib` output fails on
-  `lib.genAttrs` at the lifecycle guard — import the fleet lib via
-  `root + "/lib"` with the perSystem lib instead (their checks' house idiom).
+  feed lives there). The former SystemNix `flake.lib` anomaly (harden
+  failing `attribute 'genAttrs' missing`) was ROOT-CAUSED and FIXED
+  2026-11-13: their flake called `import ./lib { inherit (nixpkgs) lib; }`
+  — but lib/default.nix takes a SIMPLE `lib:` parameter, which binds the
+  whole WRAPPER attrset (only `{ lib }:` patterns select the field). Fix:
+  `import ./lib lib`. The perSystem `import (root + "/lib") lib` idiom was
+  always correct. General trap worth remembering repo-side too: a simple
+  parameter and an attrset-pattern are NOT interchangeable call shapes.
 - CI (`.github/workflows/check.yml`) runs `nix flake check -L` + the aarch64
   eval pass on every push to master and PR; the negative harness stays manual
   (`nix build --impure` cannot run inside flake checks). First run
@@ -229,10 +233,13 @@ environment override — renaming log lines in `watch.sh` breaks the test.
   before pushing the lock (nixpkgs tracks unstable — expect churn).
   Renovate automation for the lock is an owner opt-in (ROADMAP).
 - docs-gates (adopted 2026-11-12, config in `.docs-gates.json`, fleet
-  defaults): `nix run github:Artmann-Technologies/docs-gates -- run .` gates
-  freshness/audit-all/annotate/routing/cadence over the status-report corpus.
-  Run it before archiving or after harvesting §f items; a red freshness gate
-  names the exact unharvested report row.
+  defaults; PINNED as a flake input 2026-11-13 — locked rev, not the
+  floating github: ref that once re-flagged archived reports on upstream
+  rule drift): `docs-gates run .` inside `nix develop`, or
+  `nix run .#docs-gates -- run .` — gates freshness/audit-all/annotate/
+  routing/cadence over the status-report corpus. Run it before archiving
+  or after harvesting §f items; a red freshness gate names the exact
+  unharvested report row. Bumping it = the manual flake-update flow.
 - statix is a FIXED rule set (W01-W23; toml disables only — no custom-rule
   API). The select-parenthesization lint was PARKED with evidence
   (ROADMAP): the `f x.y` misparse class is invisible post-parse, and the
