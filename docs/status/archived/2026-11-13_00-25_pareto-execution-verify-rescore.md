@@ -146,13 +146,13 @@ entries.
 
 | #  | Task | Impact                                                                                                                                | Effort | Category | Route                 |
 | -- | ---- | ------------------------------------------------------------------------------------------------------------------------------------- | ------ | -------- | --------------------- |
-| ~~ | 1    | Verify CI first run on next push; flip FEATURES CI row 🟡→🟢                                                                          | Med    | S        | Infra                 |
-| ~~ | 2    | Apply parseMemoryBytes fix to the SystemNix fork                                                                                      | Med    | S        | Quality               |
-| ~~ | 3    | Absorb the watch.sh comment divergence in the SystemNix parity diff                                                                   | Low    | S        | Quality               |
-| 4    | Identify owner/generator of `.config/metadata.yaml` (may docs populate tags?)                                                         | Low    | S        | Process               |
-| ~~ | 5    | Push v0.1.0 tag + master to origin (explicit owner request required)                                                                  | Med    | S        | Process               |
-| ~~ | 6    | Standing SystemNix parity diff until the kill                                                                                         | Med    | M        | Quality               |
-| ~~ | 7    | dual-wan migration; audit-gate modules; boot-mirror contract single-sourcing; options-table drift guard; boot-mirror VM leg; renovate | Med    | L        | Feature/Quality/Infra |
+| ~~1~~ done — green run 43338694884; FEATURES row flipped 🟢 | ~~Verify CI first run on next push; flip FEATURES CI row 🟡→🟢~~ | ~~Med~~ | ~~S~~ | ~~Infra~~ |
+| ~~2~~ done — fixed both sides 2026-11-13 + SystemNix lib-parse-memory check | ~~Apply parseMemoryBytes fix to the SystemNix fork~~ | ~~Med~~ | ~~S~~ | ~~Quality~~ |
+| 3 **→ still open: TODO_LIST BLOCKED row; SUPERB plan T6** | Absorb the watch.sh comment divergence in the SystemNix parity diff | Low | S | Quality |
+| 4 **→ still open: TODO_LIST BLOCKED row (Q2, owner-gated)** | Identify owner/generator of `.config/metadata.yaml` (may docs populate tags?) | Low | S | Process |
+| ~~5~~ done — tag + master pushed 2026-11-13 | ~~Push v0.1.0 tag + master to origin (explicit owner request required)~~ | ~~Med~~ | ~~S~~ | ~~Process~~ |
+| 6 **→ SUPERB plan T7** | Standing SystemNix parity diff until the kill | Med | M | Quality |
+| 7 **→ SUPERB plan T10-T15** | dual-wan migration; audit-gate modules; boot-mirror contract single-sourcing; options-table drift guard; boot-mirror VM leg; renovate | Med | L | Feature/Quality/Infra |
 
 ## g) Questions (cannot be answered from this repo)
 

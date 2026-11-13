@@ -135,33 +135,33 @@ additive except the two false/stale claims replaced in place.
 
 | #  | Task | Impact                                                                                                                         | Effort | Category | Route   |
 | -- | ---- | ------------------------------------------------------------------------------------------------------------------------------ | ------ | -------- | ------- |
-| ~~ | 1    | Align FEATURES.md evidence standard (serviceTypes vs parity-class helpers)                                                     | High   | S        | Quality |
-| ~~ | 2    | wifi-failover negative mutation legs (gateway + dual-wan assertions)                                                           | High   | M        | Quality |
-| ~~ | 3    | Lib eval tests: harden lifecycle-throw, MemoryHigh derivation, parseMemoryBytes, extractPortLiterals forms, mkPortGuard assert | High   | M-L      | Quality |
-| ~~ | 4    | dprint-stability pass over archived markers (fmt → check-rows again)                                                           | Med    | S        | Quality |
-| ~~ | 5    | watch.sh stale GW comment fix (parity-coordinated)                                                                             | Med    | S        | Cleanup |
-| ~~ | 6    | aarch64: run boot-mirror-contract + module-list on both systems                                                                | Med    | S        | Quality |
-| ~~ | 7    | options.json render check per module (proves the provenance claim mechanically; module-list records paths only)                | Med    | M        | Quality |
-| ~~ | 8    | dprint role: wire into treefmt or delete dprint.json (ghost config)                                                            | Low    | S        | Cleanup |
-| ~~ | 9    | Negative-harness flake app / devShell entry                                                                                    | Low    | S        | Quality |
-| ~~ | 10   | Fresh (non-cached) wifi-failover-vm run to re-prove the VM leg                                                                 | Low    | S        | Quality |
-| ~~ | 11   | First git tag (v0.1.0) + Keep-a-Changelog version section                                                                      | Med    | S        | Process |
-| ~~ | 12   | GitHub Actions CI running nix flake check (flips SECURITY.md line back)                                                        | Med    | M        | Infra   |
-| ~~ | 13   | docs-gates adoption + `.docs-gates.json`                                                                                       | Med    | S        | Process |
-| ~~ | 14   | boot-mirror contract single-sourcing / drift gate                                                                              | Med    | M        | Quality |
-| ~~ | 15   | Module README options-table drift guard                                                                                        | Low    | M        | Docs    |
-| ~~ | 16   | boot-mirror runtime VM leg (bootctl/rsync/diff script never executed in-repo)                                                  | Med    | L        | Quality |
-| ~~ | 17   | dual-wan module migration                                                                                                      | Med    | L        | Feature |
-| ~~ | 18   | Eval-time audit gate modules (port-registry, gatus-coverage)                                                                   | Med    | L        | Feature |
-| ~~ | 19   | Standing SystemNix parity diff until the kill                                                                                  | Med    | M        | Quality |
-| ~~ | 20   | The kill: re-point SystemNix lib at this flake                                                                                 | Med    | M        | Infra   |
-| ~~ | 21   | deadnix + statix legs in treefmt                                                                                               | Low    | S        | Quality |
-| ~~ | 22   | Renovate/Dependabot for flake inputs (nixpkgs unstable pin)                                                                    | Low    | M        | Infra   |
-| ~~ | 23   | README: license mention + design-rules pointer (CONTRIBUTING)                                                                  | Low    | S        | Docs    |
-| ~~ | 24   | `.gitignore` buildflow-managed block without `.buildflow.yml` — keep or remove                                                 | Low    | S        | Cleanup |
-| ~~ | 25   | Flake description "eval-time audit gates" — soften charter or ship one (ties to #18)                                           | Low    | S        | Docs    |
-| ~~ | 26   | Re-run docs-health VERIFY after this report lands → establish post-fix baseline score                                          | Low    | M        | Process |
-| ~~ | 27   | Validate TODO effort estimates during first execution pass                                                                     | Low    | S        | Process |
+| ~~1~~ done — evidence classes A/B/C shipped in FEATURES | ~~Align FEATURES.md evidence standard (serviceTypes vs parity-class helpers)~~ | ~~High~~ | ~~S~~ | ~~Quality~~ |
+| ~~2~~ done — wififailover harness group green, harness 22/22 | ~~wifi-failover negative mutation legs (gateway + dual-wan assertions)~~ | ~~High~~ | ~~M~~ | ~~Quality~~ |
+| ~~3~~ done — lib-eval check, 53 contracts; found the parseMemoryBytes bug | ~~Lib eval tests: harden lifecycle-throw, MemoryHigh derivation, parseMemoryBytes, extractPortLiterals forms, mkPortGuard assert~~ | ~~High~~ | ~~M-L~~ | ~~Quality~~ |
+| ~~4~~ done — dissolved: dprint.json removed, no md formatter exists | ~~dprint-stability pass over archived markers (fmt → check-rows again)~~ | ~~Med~~ | ~~S~~ | ~~Quality~~ |
+| ~~5~~ done — comment fixed here; SystemNix copy divergence noted for parity diff | ~~watch.sh stale GW comment fix (parity-coordinated)~~ | ~~Med~~ | ~~S~~ | ~~Cleanup~~ |
+| ~~6~~ done — portable checks eval on both systems | ~~aarch64: run boot-mirror-contract + module-list on both systems~~ | ~~Med~~ | ~~S~~ | ~~Quality~~ |
+| ~~7~~ done — options-json check: 4 modules, 40 options, provenance proven | ~~options.json render check per module (proves the provenance claim mechanically; module-list records paths only)~~ | ~~Med~~ | ~~M~~ | ~~Quality~~ |
+| ~~8~~ done — dprint.json deleted | ~~dprint role: wire into treefmt or delete dprint.json (ghost config)~~ | ~~Low~~ | ~~S~~ | ~~Cleanup~~ |
+| ~~9~~ done — apps.negative-tests flake app | ~~Negative-harness flake app / devShell entry~~ | ~~Low~~ | ~~S~~ | ~~Quality~~ |
+| ~~10~~ done — re-proved via nix build --rebuild; semantics caveat in the 00:58 report | ~~Fresh (non-cached) wifi-failover-vm run to re-prove the VM leg~~ | ~~Low~~ | ~~S~~ | ~~Quality~~ |
+| ~~11~~ done — v0.1.0 annotated tag, pushed 2026-11-13 | ~~First git tag (v0.1.0) + Keep-a-Changelog version section~~ | ~~Med~~ | ~~S~~ | ~~Process~~ |
+| ~~12~~ done — workflow live; green run 43338694884 | ~~GitHub Actions CI running nix flake check (flips SECURITY.md line back)~~ | ~~Med~~ | ~~M~~ | ~~Infra~~ |
+| ~~13~~ done — .docs-gates.json adopted, battery green | ~~docs-gates adoption + `.docs-gates.json`~~ | ~~Med~~ | ~~S~~ | ~~Process~~ |
+| 14 **→ ROUTED to the parked tier; SUPERB plan T10** | boot-mirror contract single-sourcing / drift gate | Med | M | Quality |
+| 15 **→ ROUTED to the parked tier; SUPERB plan T11** | Module README options-table drift guard | Low | M | Docs |
+| 16 **→ ROUTED to the parked tier; SUPERB plan T12** | boot-mirror runtime VM leg (bootctl/rsync/diff script never executed in-repo) | Med | L | Quality |
+| 17 **→ ROUTED, consumer-story gated; SUPERB plan T13** | dual-wan module migration | Med | L | Feature |
+| 18 **→ ROUTED to the parked tier; SUPERB plan T14+T15** | Eval-time audit gate modules (port-registry, gatus-coverage) | Med | L | Feature |
+| 19 **→ ROUTED; SUPERB plan T7** | Standing SystemNix parity diff until the kill | Med | M | Quality |
+| 20 **→ ROUTED to ROADMAP theme 1** | The kill: re-point SystemNix lib at this flake | Med | M | Infra |
+| ~~21~~ done — deadnix+statix wired into treefmt | ~~deadnix + statix legs in treefmt~~ | ~~Low~~ | ~~S~~ | ~~Quality~~ |
+| 22 **→ ROUTED; SUPERB plan T8 (Dependabot already bumps actions)** | Renovate/Dependabot for flake inputs (nixpkgs unstable pin) | Low | M | Infra |
+| ~~23~~ done — README MIT section + design-rules pointer | ~~README: license mention + design-rules pointer (CONTRIBUTING)~~ | ~~Low~~ | ~~S~~ | ~~Docs~~ |
+| ~~24~~ done — replaced with a curated list | ~~`.gitignore` buildflow-managed block without `.buildflow.yml` — keep or remove~~ | ~~Low~~ | ~~S~~ | ~~Cleanup~~ |
+| ~~25~~ done — description reworded to the shipped surface | ~~Flake description "eval-time audit gates" — soften charter or ship one (ties to #18)~~ | ~~Low~~ | ~~S~~ | ~~Docs~~ |
+| ~~26~~ done — 00:25 rescore: Accuracy 8.5→9.5, Fitness 6.0→8.5 | ~~Re-run docs-health VERIFY after this report lands → establish post-fix baseline score~~ | ~~Low~~ | ~~M~~ | ~~Process~~ |
+| ~~27~~ done — µ-estimates validated across the 18-task execution | ~~Validate TODO effort estimates during first execution pass~~ | ~~Low~~ | ~~S~~ | ~~Process~~ |
 
 ## g) Questions (cannot be answered from this repo)
 
