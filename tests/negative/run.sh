@@ -176,6 +176,14 @@ run_case lib lifecycle-guard-stripped lib-eval fail 'lifecycle keys must throw' 
 run_case lib fs-guard-stripped lib-eval fail 'contamination guard must throw' \
 	'lib/filesystems.nix' 's|prefix = "discard=async";|prefix = "discard=asyncMutated";|'
 
+# ── optionsjson: the path-provenance proof (tests/options-json.nix) must
+#    bite — a wrong expected-suffix makes every declaration "outside
+#    territory" and the provenance throw fires ──
+run_case optionsjson green-control options-json pass - \
+	'tests/options-json.nix' '-'
+run_case optionsjson provenance-broken options-json fail 'provenance broken for' \
+	'tests/options-json.nix' 's|hasSuffix "/modules/|hasSuffix "/modules-mutated/|'
+
 say "----"
 say "passed=$passed failed=$failed"
 [ "$failed" -eq 0 ]

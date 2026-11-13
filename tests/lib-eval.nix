@@ -20,8 +20,13 @@
     else msg;
 
   # Force a mkMerge OUTSIDE the module system: route it through a trivial
-  # evalModules option of type `anything`, which performs the same
-  # priority-aware deep merge the NixOS serviceConfig option would.
+  # evalModules option of type `anything`. KNOWN APPROXIMATION (documented
+  # 2026-11-13, T3 of the SUPERB plan): `types.anything` merges like the
+  # real option merge for the shapes pinned below (nested attrsets, lists,
+  # priorities), but it is NOT the NixOS serviceConfig submodule merge —
+  # option types, coercion and error loci differ. The contracts stay valid
+  # because they pin RESULT VALUES, never merge mechanics; the true
+  # serviceConfig merge is covered by the four module contract checks.
   mergeIt = expr:
     (
       lib.evalModules {
