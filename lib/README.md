@@ -28,10 +28,24 @@ modules consume them (109 files import `harden` from the SystemNix path; recount
 `mkFilesystem` copy until its consumers move). The copies are deleted
 helper-by-helper as consumers migrate to the collection module imports; the
 final kill (re-pointing SystemNix `lib/default.nix` at this lib via the flake
-input) happens when the last consumer moves. Parity diffs + negative-test
-legs guard against value drift between the copies in the meantime.
+input) happens when the last consumer moves. Parity is GUARDED MECHANICALLY
+since 2026-11-13 (SUPERB T7):
 
-**Divergence ledger (the standing parity diff must absorb or bless these):**
+```sh
+bash tests/parity/run.sh            # or: nix run .#parity-diff
+# SYSTEMNIX_PATH=/other/checkout bash tests/parity/run.sh
+```
+
+22 value-comparable helpers are called with identical inputs through both
+libs (same nixpkgs instance), normalized (mkOverride unwrapped, derivations
+→ names, store hashes → `<h>`), and required to render identical JSON —
+byte diffs never matter, VALUE drift fails the run naming the probe and
+both sides. `serviceTypes` and `ports` are skipped by design (option
+constructors with type-function payloads — not value-comparable; covered by
+lib-eval contracts on both sides). Bite-proven: a one-value fork mutation
+fails the run. Run it after every lib change on either side.
+
+**Divergence ledger (absorbed divergences the standing diff must stay aware of):**
 
 - `parseMemoryBytes` bare-byte fix — CLOSED both sides 2026-11-13 (SystemNix
   carries the identical fix + a `lib-parse-memory` regression check).

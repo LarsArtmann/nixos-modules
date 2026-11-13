@@ -68,7 +68,11 @@ to these imports; the final re-point happens when the last consumer moves.
 Consequences when editing `lib/`:
 
 - Parity between the copies matters. Do not "improve" one side silently —
-  parity diffs and the negative-test legs guard value drift.
+  `bash tests/parity/run.sh` (or `nix run .#parity-diff`) is the STANDING
+  semantic guard: 22 helpers × identical inputs × normalized JSON comparison
+  against the SystemNix checkout (SYSTEMNIX_PATH overrides). RUN IT after
+  every `lib/` change here or SystemNix-side; the negative-test legs guard
+  this repo's own contracts independently.
 - Consumers pin by rev, so shipped option aliases are effectively permanent.
 
 ## Module conventions (enforced, not stylistic)

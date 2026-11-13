@@ -102,9 +102,11 @@
           treefmtEval.config.build.wrapper
       );
 
-      # The negative mutation harness as a flake app. The harness copies the
-      # git-TRACKED tree, so it must run against a working checkout — invoke
-      # from the repo root (CASES=... and KEEP=1 pass through the env).
+      # Manual (sibling-checkout-dependent) tools as flake apps: the negative
+      # mutation harness and the SystemNix parity diff. Both copy/eval the
+      # git-tracked tree, so they must run against a working checkout —
+      # invoke from the repo root (CASES=/KEEP= and SYSTEMNIX_PATH/KEEP_JSON=
+      # pass through the env).
       apps = forAllSystems (system: {
         negative-tests = {
           type = "app";
@@ -114,6 +116,16 @@
               exit 1
             fi
             exec bash "$PWD/tests/negative/run.sh" "$@"
+          '');
+        };
+        parity-diff = {
+          type = "app";
+          program = toString (nixpkgs.legacyPackages.${system}.writeShellScript "parity-diff" ''
+            if [ ! -f "$PWD/tests/parity/run.sh" ]; then
+              echo "parity-diff: run from the repo root (or directly: bash tests/parity/run.sh)" >&2
+              exit 1
+            fi
+            exec bash "$PWD/tests/parity/run.sh" "$@"
           '');
         };
       });
