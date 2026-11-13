@@ -163,6 +163,12 @@ group_bootmirror() {
 		'modules/boot-mirror/default.nix' 's|ConditionPathIsMountPoint = mirror;|ConditionPathIsMountPoint = src;|'
 	run_case bootmirror nofail-dropped boot-mirror-contract fail 'stay nofail' \
 		'modules/boot-mirror/default.nix' 's|"nofail"|"nofail-mutated"|'
+	# The diff-gate self-pin (module asserts the gate's shape at eval):
+	# neutering the verification diff trips the module's OWN assertion —
+	# the gate itself is runtime-only, the eval pin is what makes the
+	# harness able to bite here at all.
+	run_case bootmirror diffgate-stripped boot-mirror-contract fail 'the diff -r verification gate must stay' \
+		'modules/boot-mirror/default.nix' 's|if ! diff -r -x random-seed|if ! diff -q -x random-seed|'
 	run_case bootmirror tier-stripped boot-mirror-contract fail 'background IO tier' \
 		'modules/boot-mirror/default.nix' 's|^          ioTier.background$|          { }|'
 	# VM leg: the degradation pin must BITE — flipping the expected mount

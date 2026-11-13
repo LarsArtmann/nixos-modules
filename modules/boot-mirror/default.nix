@@ -51,6 +51,75 @@
   # /loader/random-seed is deliberately PER-ESP (systemd-boot derives the
   # ERSP from it): excluded from copy AND protected receiver-side from
   # --delete (rsync protects excluded files on the receiver by default).
+  # Hoisted out of the writeShellApplication so the eval-time self-assertion
+  # below can pin the verification gate: the `diff -r` leg is runtime-only
+  # (a regression syncs fine and arms a stale boot silently) unless its
+  # shape is contract-pinned at eval time.
+  syncText = ''
+    set -euo pipefail
+
+    # 1. Install/refresh systemd-boot on the mirror ESP: loader binary +
+    #    EFI/BOOT fallback + per-ESP random seed. --variables=no: this unit
+    #    never touches EFI variables — NVRAM is owned by the consumer's
+    #    activation command. --make-entry-directory=no: the auto
+    #    entry-token dir would exist ONLY on the mirror and trip the diff
+    #    gate below (NixOS's builder writes entries straight into
+    #    loader/entries/, no token dir).
+    bootctl --esp-path="${mirror}" --variables=no --make-entry-directory=no install
+
+    # 2. Reverse-propagate loader-owned state (booted ESP -> managed ESP)
+    #    BEFORE the forward mirror. The loader mutates the ESP it BOOTS, so
+    #    its boot counting renames (nixos-<hash>+T.conf -> +T-K.conf per
+    #    attempt) and blessings (suffix stripped once boot-complete.target
+    #    is reached) land ONLY there. Matching the managed twin to the
+    #    booted ESP's state makes rsync see identical filenames: counters
+    #    survive the mirror, the diff gate stays green, and a partial-hang
+    #    boot (multi-user reached, boot-complete never) still converges to
+    #    fallback instead of being counter-reset by this very sync.
+    find ${src}/loader/entries -maxdepth 1 -type f -name '*+*.conf' -printf '%f\n' |
+      while IFS= read -r entry; do
+        if ! [[ $entry =~ ^(.*)\+[0-9]+(-[0-9]+)?\.conf$ ]]; then
+          continue # not a boot-counting entry — builder only writes +T names
+        fi
+        stem=''${BASH_REMATCH[1]}
+        if [ -e "${mirror}/loader/entries/''${stem}.conf" ]; then
+          rm -f "${src}/loader/entries/''${entry}" # blessed on the booted ESP: drop the stale counting twin
+        else
+          matched=$(find "${mirror}/loader/entries" -maxdepth 1 -type f -name "''${stem}+*.conf" -printf '%f\n' | head -n 1)
+          # A converged twin is a correct NO-OP: on case-insensitive vfat,
+          # byte-different names can resolve to the SAME file and GNU mv
+          # dies "are the same file", aborting the sync BEFORE the rsync
+          # leg and leaving the mirror stale. The -ef inode test is
+          # exactly mv's own same-file predicate — skip instead of crash.
+          if
+            [ -n "$matched" ] && [ "$matched" != "''${entry}" ] \
+              && ! [ "${src}/loader/entries/''${entry}" -ef "${src}/loader/entries/''${matched}" ]
+          then
+            mv -f "${src}/loader/entries/''${entry}" "${src}/loader/entries/''${matched}"
+          fi
+        fi
+      done
+
+    # 3. Full tree mirror (entries, kernels, initrds, loader.conf).
+    rsync \
+      --archive --no-owner --no-group --no-perms --modify-window=2 \
+      --delete \
+      --exclude=/loader/random-seed \
+      ${src}/ "${mirror}/"
+
+    # 4. Verification gate — the 2nd boot disk must be tree-identical to
+    #    the ESP the system actually manages, or it is a lie. Any drift
+    #    (failed copy, partial write, manual edit) fails the unit loudly
+    #    instead of arming a stale-boot trap. "System Volume Information"
+    #    is FAT-tooling noise, never mirrored.
+    if ! diff -q -x random-seed -x "System Volume Information" ${src} "${mirror}"; then
+      echo "boot-mirror-sync: mirror diverges from ${src} (diff above) — refusing to call the 2nd boot disk current" >&2
+      exit 1
+    fi
+
+    counters=$(find ${mirror}/loader/entries -maxdepth 1 -name '*+*.conf' -type f -printf '%f\n' | tr '\n' ' ')
+    echo "boot-mirror-sync: OK — $(find ${mirror}/loader/entries -maxdepth 1 -name 'nixos-*.conf' -type f | wc -l) entries, counters[''${counters:-none}], $(du -sh ${mirror} 2>/dev/null | cut -f1) mirrored"
+  '';
   syncScript = pkgs.writeShellApplication {
     name = "boot-mirror-sync";
     runtimeInputs = [
@@ -60,71 +129,7 @@
       pkgs.rsync
       pkgs.systemd # bootctl
     ];
-    text = ''
-      set -euo pipefail
-
-      # 1. Install/refresh systemd-boot on the mirror ESP: loader binary +
-      #    EFI/BOOT fallback + per-ESP random seed. --variables=no: this unit
-      #    never touches EFI variables — NVRAM is owned by the consumer's
-      #    activation command. --make-entry-directory=no: the auto
-      #    entry-token dir would exist ONLY on the mirror and trip the diff
-      #    gate below (NixOS's builder writes entries straight into
-      #    loader/entries/, no token dir).
-      bootctl --esp-path="${mirror}" --variables=no --make-entry-directory=no install
-
-      # 2. Reverse-propagate loader-owned state (booted ESP -> managed ESP)
-      #    BEFORE the forward mirror. The loader mutates the ESP it BOOTS, so
-      #    its boot counting renames (nixos-<hash>+T.conf -> +T-K.conf per
-      #    attempt) and blessings (suffix stripped once boot-complete.target
-      #    is reached) land ONLY there. Matching the managed twin to the
-      #    booted ESP's state makes rsync see identical filenames: counters
-      #    survive the mirror, the diff gate stays green, and a partial-hang
-      #    boot (multi-user reached, boot-complete never) still converges to
-      #    fallback instead of being counter-reset by this very sync.
-      find ${src}/loader/entries -maxdepth 1 -type f -name '*+*.conf' -printf '%f\n' |
-        while IFS= read -r entry; do
-          if ! [[ $entry =~ ^(.*)\+[0-9]+(-[0-9]+)?\.conf$ ]]; then
-            continue # not a boot-counting entry — builder only writes +T names
-          fi
-          stem=''${BASH_REMATCH[1]}
-          if [ -e "${mirror}/loader/entries/''${stem}.conf" ]; then
-            rm -f "${src}/loader/entries/''${entry}" # blessed on the booted ESP: drop the stale counting twin
-          else
-            matched=$(find "${mirror}/loader/entries" -maxdepth 1 -type f -name "''${stem}+*.conf" -printf '%f\n' | head -n 1)
-            # A converged twin is a correct NO-OP: on case-insensitive vfat,
-            # byte-different names can resolve to the SAME file and GNU mv
-            # dies "are the same file", aborting the sync BEFORE the rsync
-            # leg and leaving the mirror stale. The -ef inode test is
-            # exactly mv's own same-file predicate — skip instead of crash.
-            if
-              [ -n "$matched" ] && [ "$matched" != "''${entry}" ] \
-                && ! [ "${src}/loader/entries/''${entry}" -ef "${src}/loader/entries/''${matched}" ]
-            then
-              mv -f "${src}/loader/entries/''${entry}" "${src}/loader/entries/''${matched}"
-            fi
-          fi
-        done
-
-      # 3. Full tree mirror (entries, kernels, initrds, loader.conf).
-      rsync \
-        --archive --no-owner --no-group --no-perms --modify-window=2 \
-        --delete \
-        --exclude=/loader/random-seed \
-        ${src}/ "${mirror}/"
-
-      # 4. Verification gate — the 2nd boot disk must be tree-identical to
-      #    the ESP the system actually manages, or it is a lie. Any drift
-      #    (failed copy, partial write, manual edit) fails the unit loudly
-      #    instead of arming a stale-boot trap. "System Volume Information"
-      #    is FAT-tooling noise, never mirrored.
-      if ! diff -r -x random-seed -x "System Volume Information" ${src} "${mirror}"; then
-        echo "boot-mirror-sync: mirror diverges from ${src} (diff above) — refusing to call the 2nd boot disk current" >&2
-        exit 1
-      fi
-
-      counters=$(find ${mirror}/loader/entries -maxdepth 1 -name '*+*.conf' -type f -printf '%f\n' | tr '\n' ' ')
-      echo "boot-mirror-sync: OK — $(find ${mirror}/loader/entries -maxdepth 1 -name 'nixos-*.conf' -type f | wc -l) entries, counters[''${counters:-none}], $(du -sh ${mirror} 2>/dev/null | cut -f1) mirrored"
-    '';
+    text = syncText;
   };
 in {
   options.services.boot-mirror = {
@@ -208,6 +213,20 @@ in {
             (config.systemd.services.boot-mirror-sync.unitConfig.ConditionPathIsMountPoint or null)
             == mirror;
           message = "boot-mirror-sync.service: the mount condition must stay — a path-unit trigger with an unmounted mirror must condition-skip, never fail";
+        }
+        {
+          # Self-pinned contract: the post-rsync `diff -r` verification gate
+          # (step 4 of the sync script) is the "the 2nd boot disk must be
+          # tree-identical or it is a lie" half. It is runtime-only by
+          # nature — a regression (gate stripped or neutered) syncs green
+          # and arms the NEXT stale boot — so pin its two load-bearing
+          # fragments at eval: the diff invocation shape and the loud
+          # refusal message. The negative-harness diffgate-stripped leg
+          # proves this assertion bites.
+          assertion =
+            lib.hasInfix ''if ! diff -q -x random-seed -x "System Volume Information"'' syncText
+            && lib.hasInfix "refusing to call the 2nd boot disk current" syncText;
+          message = "boot-mirror-sync: the diff -r verification gate must stay — a mirror allowed to silently diverge is a stale-boot trap";
         }
       ];
     }

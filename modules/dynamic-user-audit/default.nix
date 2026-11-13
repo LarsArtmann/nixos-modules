@@ -22,6 +22,7 @@
 {
   lib,
   config,
+  options,
   ...
 }: let
   # Source of truth: services where DynamicUser=true at eval time.
@@ -36,11 +37,14 @@
   dynamicUserNames = builtins.attrNames dynamicUserServices;
 
   # Find sops secrets owned by a non-root user matching a DynamicUser name.
-  # tryEval guards standalone module evaluation (sops option may not exist).
-  sopsSecretsResult = builtins.tryEval config.sops.secrets;
+  # Guarded by `options ?` — NOT builtins.tryEval: under Nix 2.34 the
+  # missing-option error (attribute 'sops' missing) escapes tryEval through
+  # the seq-checked config fixpoint (proven by this module's own contract
+  # bare-host leg, 2026-11-13). On hosts without sops-nix the audit stays
+  # silent; it bites exactly where secrets exist.
   sopsSecrets =
-    if sopsSecretsResult.success
-    then sopsSecretsResult.value
+    if options ? sops.secrets
+    then config.sops.secrets
     else {};
 
   violatingSecrets =
@@ -53,10 +57,9 @@
     sopsSecrets;
 
   # Also check sops templates — same atomic-block failure mode
-  sopsTemplatesResult = builtins.tryEval config.sops.templates;
   sopsTemplates =
-    if sopsTemplatesResult.success
-    then sopsTemplatesResult.value
+    if options ? sops.templates
+    then config.sops.templates
     else {};
 
   violatingTemplates =

@@ -4,12 +4,18 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     treefmt-nix.url = "github:numtide/treefmt-nix";
+    # Pinned (locked rev) docs-gates battery: the floating `nix run
+    # github:…` ref re-fetched whatever upstream was TODAY and its rule
+    # drift already re-flagged archived reports once (2026-11-13). The
+    # lock is the pin; bumps are the manual flow (flake update gates).
+    docs-gates.url = "github:Artmann-Technologies/docs-gates";
   };
 
   outputs = {
     self,
     nixpkgs,
     treefmt-nix,
+    docs-gates,
   }: let
     inherit (nixpkgs) lib;
     systems = [
@@ -157,22 +163,26 @@
 
       # Harness/dev shell: the tools tests/negative + tests/parity need
       # (bash, git+rsync for the copy, nix for the builds, jq for parity
-      # verdict rendering). `nix develop` → every gate runnable bare.
+      # verdict rendering), plus the PINNED docs-gates battery (no
+      # floating github: ref to re-type). `nix develop` → every gate
+      # runnable bare.
       devShells = forAllSystems (system: {
         default = nixpkgs.legacyPackages.${system}.mkShellNoCC {
-          packages = with nixpkgs.legacyPackages.${system}; [
-            bash
-            git
-            rsync
-            jq
-            nix
-          ];
+          packages = with nixpkgs.legacyPackages.${system};
+            [
+              bash
+              git
+              rsync
+              jq
+              nix
+            ]
+            ++ [docs-gates.packages.${system}.default];
           shellHook = ''
             echo "nixos-modules devshell — gates:" >&2
             echo "  nix flake check            # everything (VMs on x86_64)" >&2
             echo "  bash tests/negative/run.sh # mutation harness (CASES=, KEEP=, PARALLEL=0)" >&2
             echo "  bash tests/parity/run.sh   # SystemNix parity diff (SYSTEMNIX_PATH=)" >&2
-            echo "  nix run github:Artmann-Technologies/docs-gates -- run ." >&2
+            echo "  docs-gates run .           # status-report battery (pinned input)" >&2
           '';
         };
       });
@@ -202,6 +212,14 @@
             fi
             exec bash "$PWD/tests/parity/run.sh" "$@"
           '');
+        };
+        # Pinned docs-gates battery: `nix run .#docs-gates -- run .`
+        # (same invocation as the historical floating github: ref, but the
+        # rev comes from this flake's lock, not from whatever upstream is
+        # today).
+        docs-gates = {
+          type = "app";
+          program = "${docs-gates.packages.${system}.default}/bin/docs-gates";
         };
       });
     };
