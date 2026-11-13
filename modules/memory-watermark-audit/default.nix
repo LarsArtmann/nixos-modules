@@ -85,16 +85,15 @@
   # home-manager.users is absent on HM-less hosts — `or { }`
   # keeps the audit importable everywhere. Offenders carry the owning
   # user as prefix: HM service names are only unique per user.
-  hmUserOffenders =
-    lib.concatLists (
-      lib.mapAttrsToList (
-        user: hmCfg:
+  hmUserOffenders = lib.concatLists (
+    lib.mapAttrsToList (
+      user: hmCfg:
         lib.map (name: "${user}:${name}") (
           lib.attrNames (lib.filterAttrs trapHM (hmCfg.systemd.user.services or {}))
         )
-      )
-      (config.home-manager.users or {})
-    );
+    )
+    (config.home-manager.users or {})
+  );
   fix = ''
     Fix: pass MemoryMax INTO the harden{} call — the throttle watermark
     derives from that argument (llama-chat.nix is the reference) — or set

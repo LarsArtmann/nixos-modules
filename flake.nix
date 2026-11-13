@@ -97,6 +97,22 @@
               inherit lib pkgs;
               module = ./modules/gatus-coverage-audit;
             };
+            mount-gating-audit-contract = import ./tests/mount-gating-audit-contract.nix {
+              inherit lib pkgs;
+              module = ./modules/mount-gating-audit;
+            };
+            memory-watermark-audit-contract = import ./tests/memory-watermark-audit-contract.nix {
+              inherit lib pkgs;
+              module = ./modules/memory-watermark-audit;
+            };
+            dynamic-user-audit-contract = import ./tests/dynamic-user-audit-contract.nix {
+              inherit lib pkgs;
+              module = ./modules/dynamic-user-audit;
+            };
+            capability-grant-audit-contract = import ./tests/capability-grant-audit-contract.nix {
+              inherit lib pkgs;
+              module = ./modules/capability-grant-audit;
+            };
             module-list = pkgs.runCommand "module-list" {} ''
               # Forces evaluation of every discovered module path and records the
               # public surface; a change here shows up as a check-input diff.

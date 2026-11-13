@@ -27,34 +27,46 @@
   # Source of truth: services where DynamicUser=true at eval time.
   # Catches nixpkgs upstream modules (atticd, gatus, searx) AND any
   # future consumer service that enables DynamicUser.
-  dynamicUserServices = lib.filterAttrs (
-    _name: svc: svc.serviceConfig.DynamicUser or false
-  ) config.systemd.services;
+  dynamicUserServices =
+    lib.filterAttrs (
+      _name: svc: svc.serviceConfig.DynamicUser or false
+    )
+    config.systemd.services;
 
   dynamicUserNames = builtins.attrNames dynamicUserServices;
 
   # Find sops secrets owned by a non-root user matching a DynamicUser name.
   # tryEval guards standalone module evaluation (sops option may not exist).
   sopsSecretsResult = builtins.tryEval config.sops.secrets;
-  sopsSecrets = if sopsSecretsResult.success then sopsSecretsResult.value else {};
+  sopsSecrets =
+    if sopsSecretsResult.success
+    then sopsSecretsResult.value
+    else {};
 
-  violatingSecrets = lib.filterAttrs (
-    _name: secret: let
-      owner = secret.owner or "root";
-    in
-      owner != "root" && builtins.elem owner dynamicUserNames
-  ) sopsSecrets;
+  violatingSecrets =
+    lib.filterAttrs (
+      _name: secret: let
+        owner = secret.owner or "root";
+      in
+        owner != "root" && builtins.elem owner dynamicUserNames
+    )
+    sopsSecrets;
 
   # Also check sops templates — same atomic-block failure mode
   sopsTemplatesResult = builtins.tryEval config.sops.templates;
-  sopsTemplates = if sopsTemplatesResult.success then sopsTemplatesResult.value else {};
+  sopsTemplates =
+    if sopsTemplatesResult.success
+    then sopsTemplatesResult.value
+    else {};
 
-  violatingTemplates = lib.filterAttrs (
-    _name: template: let
-      owner = template.owner or "root";
-    in
-      owner != "root" && builtins.elem owner dynamicUserNames
-  ) sopsTemplates;
+  violatingTemplates =
+    lib.filterAttrs (
+      _name: template: let
+        owner = template.owner or "root";
+      in
+        owner != "root" && builtins.elem owner dynamicUserNames
+    )
+    sopsTemplates;
 in {
   config.assertions =
     (lib.mapAttrsToList (

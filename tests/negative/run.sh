@@ -10,6 +10,12 @@
 #                 (an unrelated eval error does NOT count)
 #   expect=pass → build succeeds (green controls)
 #
+# Parallel groups interleave on the console (and in the aggregate log), so
+# every case also appends its outcome line — and on failures the build
+# output tail — to a PER-GROUP log under ~/.cache/negative-collection/
+# groups/<group>.log. Groups that recorded a failure are printed in full
+# after the summary; a green run deletes the directory again.
+#
 # Never trust an exit-0 check you wrote without proving it FAILS on the
 # historical bug shape it was built from.
 #
@@ -48,6 +54,12 @@ FILTER="${CASES:-}"
 LOG="${CASES_LOG:-$HOME/.cache/negative-collection/cases.log}"
 mkdir -p "$(dirname "$LOG")"
 : >"$LOG"
+
+# Per-group diagnostics: one file per group so parallel appends never
+# interleave a multi-line build tail with another group's output.
+GROUPS_DIR="$(dirname "$LOG")/groups"
+rm -rf "$GROUPS_DIR"
+mkdir -p "$GROUPS_DIR"
 
 say() {
 	printf '%s\n' "$*"
@@ -91,27 +103,44 @@ run_case() {
 	local out status=0
 	out=$(build_check "$dir" "$check") || status=$?
 
+	local glog="$GROUPS_DIR/$group.log"
+	# record: outcome line → console + aggregate log + the group transcript.
+	record() {
+		say "$1"
+		printf '%s\n' "$1" >>"$glog"
+	}
+	# diagnose: full build-output tail → GROUP log only (the aggregate log
+	# keeps the 3-line excerpt; deep triage context stays per group).
+	diagnose() {
+		{
+			printf '    check=%s expect=%s marker=%s\n' "$check" "$expect" "$marker"
+			tail -n 40 <<<"$out" | sed 's/^/    /'
+		} >>"$glog"
+	}
+
 	case "$expect" in
 	fail)
 		if [ "$status" -eq 0 ]; then
-			say "FAIL [$group/$name]: mutation PASSED the $check build — phantom-green contract (marker: $marker)"
+			record "FAIL [$group/$name]: mutation PASSED the $check build — phantom-green contract (marker: $marker)"
 		elif ! grep -qE "$marker" <<<"$out"; then
-			say "FAIL [$group/$name]: build failed but marker '$marker' absent — caught by accident, not the contract:"
+			record "FAIL [$group/$name]: build failed but marker '$marker' absent — caught by accident, not the contract:"
 			grep -m3 'error:' <<<"$out" | sed 's/^/    /' >>"$LOG"
+			diagnose
 		else
-			say "PASS [$group/$name]: $check failed with the expected marker"
+			record "PASS [$group/$name]: $check failed with the expected marker"
 		fi
 		;;
 	pass)
 		if [ "$status" -eq 0 ]; then
-			say "PASS [$group/$name]: $check correctly stayed green"
+			record "PASS [$group/$name]: $check correctly stayed green"
 		else
-			say "FAIL [$group/$name]: $check should have stayed green but failed:"
+			record "FAIL [$group/$name]: $check should have stayed green but failed:"
 			grep -m3 -E 'error:|contract' <<<"$out" | sed 's/^/    /' >>"$LOG"
+			diagnose
 		fi
 		;;
 	*)
-		say "FAIL [$group/$name]: harness bug — unknown expect value '$expect' (silent fall-through class)"
+		record "FAIL [$group/$name]: harness bug — unknown expect value '$expect' (silent fall-through class)"
 		;;
 	esac
 }
@@ -305,4 +334,19 @@ cat "$LOG"
 
 say "----"
 say "passed=$passed failed=$failed"
+
+# Surface every failing group's transcript in full (parallel mode cannot
+# print these inline without interleaving); a green run cleans up.
+if [ "$failed" -gt 0 ]; then
+	for g in $ALL_GROUPS; do
+		glog="$GROUPS_DIR/$g.log"
+		if [ -e "$glog" ] && grep -q '^FAIL' "$glog"; then
+			say "──── failing group transcript: $glog"
+			cat "$glog"
+		fi
+	done
+else
+	rm -rf "$GROUPS_DIR"
+fi
+
 [ "$failed" -eq 0 ]
