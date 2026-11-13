@@ -8,8 +8,8 @@
 #      is matched to the mirror's counter BEFORE the forward copy (the
 #      counters-survive-the-mirror contract), and a blessed entry drops its
 #      stale counting twin.
-#   3. degradation: with the mount unit masked (a detached mirror's
-#      systemd reality), the sync's RequiresMountsFor dependency-fails the
+#   3. degradation: with the mirror's fs zeroed (disk attached,
+#      filesystem unreadable), the sync's RequiresMountsFor fails the
 #      start job (Result=dependency: the script never runs, no partial
 #      copy) — a detached mirror degrades boot nothing (multi-user was
 #      reached with the mirror absent from boot).
@@ -145,17 +145,20 @@ _: {
     # above: multi-user was reached mirror-less). (A plain umount is NOT
     # degradation: the pulled mount job would just remount vdb1.)
     machine.succeed("umount /boot-mirror && udevadm settle")
-    # Detach at the systemd level: mask the mount unit — exactly what the
-    # sync's RequiresMountsFor sees when a mirror cannot mount (disk gone,
-    # fs unreadable). Kernel-level unplug proved RACY here: sfdisk
-    # --delete left the node mountable (the pulled mount job remounted it,
-    # bootctl then failed exit-code), and partx BLKPG delete returned EBUSY
-    # 10/10 on the virtio disk. (A plain umount is NOT degradation either:
-    # the pulled mount job would just remount vdb1.)
-    machine.succeed("systemctl mask 'boot\\x2dmirror.mount'")
+    # Detach the mirror at the fs level: zero the vfat superblock — the
+    # disk still attaches, its filesystem is unreadable: the realistic
+    # degraded state a consumer's disk develops. Kernel-level unplug
+    # proved RACY here (sfdisk --delete left the node mountable — the
+    # pulled mount job remounted it; partx BLKPG delete returned EBUSY
+    # 10/10 on the virtio disk), and systemctl mask cannot write into
+    # NixOS's store-backed /etc. (A plain umount is NOT degradation
+    # either: the pulled mount job would just remount vdb1.)
+    machine.succeed(
+        "dd if=/dev/zero of=/dev/vdb1 bs=512 count=4 && udevadm settle"
+    )
     machine.fail("systemctl restart boot-mirror-sync.service")
     # Empirical systemd semantics (pinned): the start JOB fails through
-    # RequiresMountsFor with Result=dependency — the sync SCRIPT never
+    # RequiresMountsFor — Result=dependency — so the sync SCRIPT never
     # runs against an unusable mirror: no partial copy, no silent success.
     # Boot-level degradation (never a stall) is already proven at the top:
     # multi-user was reached with the mirror absent from boot.
@@ -166,7 +169,7 @@ _: {
 
     # 4. Loud failure: a read-only mirror (partial-copy stand-in) fails the
     # unit — the diff-gate posture: never call a partial mirror current.
-    machine.succeed("systemctl unmask 'boot\\x2dmirror.mount'")
+    machine.succeed("mkfs.vfat -n MIRRORESP /dev/vdb1 && udevadm settle")
     machine.succeed("mount /dev/vdb1 /boot-mirror")
     machine.succeed("mount -o remount,ro /boot-mirror")
     machine.succeed("touch /boot/loader/entries/trigger-ro.conf")

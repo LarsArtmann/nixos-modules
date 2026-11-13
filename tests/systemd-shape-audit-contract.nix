@@ -45,39 +45,44 @@
     baseModules
     ++ [
       {
-        # class 1: oneshot + Restart=always (unloadable unit)
-        systemd.services.shape-c1.serviceConfig = {
-          Type = "oneshot";
-          Restart = "always";
+        systemd = {
+          services = {
+            # class 1: oneshot + Restart=always (unloadable unit)
+            shape-c1.serviceConfig = {
+              Type = "oneshot";
+              Restart = "always";
+            };
+            # class 2 (service half): Restart != no under a matching timer
+            shape-c2.serviceConfig.Restart = "on-failure";
+            # class 5: script option nested inside serviceConfig (no ExecStart,
+            # unit refuses to load — crm-backup class)
+            shape-c5.serviceConfig.script = "echo garbage keys";
+            # class 6: two units declaring the same RuntimeDirectory
+            shape-c6a.serviceConfig.RuntimeDirectory = "shape-shared-rt";
+            shape-c6b.serviceConfig.RuntimeDirectory = "shape-shared-rt";
+            # class 7: boot-blocking oneshot with unbounded TimeoutStartSec
+            shape-c7 = {
+              wantedBy = ["multi-user.target"];
+              serviceConfig.Type = "oneshot";
+            };
+            # class 8: OnFailure nested inside serviceConfig (never arms)
+            shape-c8.serviceConfig.OnFailure = "notify-failure@%n.service";
+            # class 9: [Service] key nested inside unitConfig (silently ignored)
+            shape-c9.unitConfig.TimeoutStartSec = "10min";
+            # class 10: is-active probe against a oneshot without RemainAfterExit
+            shape-c10-target.serviceConfig.Type = "oneshot";
+            shape-c10-probe.script = "systemctl is-active shape-c10-target.service";
+          };
+          # class 2 (timer half): the matching timer that drives shape-c2
+          timers.shape-c2 = {
+            wantedBy = ["timers.target"];
+            timerConfig.OnCalendar = "daily";
+          };
+          # class 3: path unit triggered by PathExists (re-fire loop)
+          paths.shape-c3.pathConfig.PathExists = "/tmp/shape-c3";
+          # class 4: literal $HOME in a USER unit Exec line
+          user.services.shape-c4.serviceConfig.ExecStart = "/bin/app --config $HOME/.config/app";
         };
-        # class 2: matching timer + Restart != no (start-limit cascade)
-        systemd.services.shape-c2.serviceConfig.Restart = "on-failure";
-        systemd.timers.shape-c2 = {
-          wantedBy = ["timers.target"];
-          timerConfig.OnCalendar = "daily";
-        };
-        # class 5: script option nested inside serviceConfig (no ExecStart,
-        # unit refuses to load — crm-backup class)
-        systemd.services.shape-c5.serviceConfig.script = "echo garbage keys";
-        # class 6: two units declaring the same RuntimeDirectory
-        systemd.services.shape-c6a.serviceConfig.RuntimeDirectory = "shape-shared-rt";
-        systemd.services.shape-c6b.serviceConfig.RuntimeDirectory = "shape-shared-rt";
-        # class 7: boot-blocking oneshot with unbounded TimeoutStartSec
-        systemd.services.shape-c7 = {
-          wantedBy = ["multi-user.target"];
-          serviceConfig.Type = "oneshot";
-        };
-        # class 8: OnFailure nested inside serviceConfig (never arms)
-        systemd.services.shape-c8.serviceConfig.OnFailure = "notify-failure@%n.service";
-        # class 9: [Service] key nested inside unitConfig (silently ignored)
-        systemd.services.shape-c9.unitConfig.TimeoutStartSec = "10min";
-        # class 10: is-active probe against a oneshot without RemainAfterExit
-        systemd.services.shape-c10-target.serviceConfig.Type = "oneshot";
-        systemd.services.shape-c10-probe.script = "systemctl is-active shape-c10-target.service";
-        # class 3: path unit triggered by PathExists (re-fire loop)
-        systemd.paths.shape-c3.pathConfig.PathExists = "/tmp/shape-c3";
-        # class 4: literal $HOME in a USER unit Exec line
-        systemd.user.services.shape-c4.serviceConfig.ExecStart = "/bin/app --config $HOME/.config/app";
       }
     ]
   );
