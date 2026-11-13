@@ -156,6 +156,12 @@ _: {
     machine.succeed(
         "dd if=/dev/zero of=/dev/vdb1 bs=512 count=4 && udevadm settle"
     )
+    # Wait out systemd's mount-monitoring lag: until the umount is PROCESSED,
+    # the mount unit still reads active and the restart would skip the mount
+    # job entirely (observed: the script ran against the bare mountpoint).
+    machine.wait_until_succeeds(
+        "! systemctl is-active -q 'boot\\\\x2dmirror.mount'"
+    )
     machine.fail("systemctl restart boot-mirror-sync.service")
     # Empirical systemd semantics (pinned): the start JOB fails through
     # RequiresMountsFor — Result=dependency — so the sync SCRIPT never
