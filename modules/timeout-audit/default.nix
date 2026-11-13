@@ -15,9 +15,6 @@
 # Provenance: moved verbatim from SystemNix modules/nixos/services/timeout-audit.nix
 # (2026-11-13, plan wave A1a); that file is now a delegation layer importing
 # this module. No options — the default is the contract.
-{
-  lib,
-  ...
-}: {
+{lib, ...}: {
   config.systemd.settings.Manager.DefaultTimeoutStartSec = lib.mkDefault "3min";
 }

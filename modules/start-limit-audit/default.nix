@@ -26,11 +26,13 @@
 }: let
   # serviceConfig is a mix of typed (nullOr) options and freeform attrs:
   # `?` guards freeform absence, `!= null` guards typed-but-unset options.
-  offenders = lib.filterAttrs (
-    _name: svc:
-    (svc.serviceConfig ? StartLimitBurst && svc.serviceConfig.StartLimitBurst != null)
-    || (svc.serviceConfig ? StartLimitIntervalSec && svc.serviceConfig.StartLimitIntervalSec != null)
-  ) config.systemd.services;
+  offenders =
+    lib.filterAttrs (
+      _name: svc:
+        (svc.serviceConfig ? StartLimitBurst && svc.serviceConfig.StartLimitBurst != null)
+        || (svc.serviceConfig ? StartLimitIntervalSec && svc.serviceConfig.StartLimitIntervalSec != null)
+    )
+    config.systemd.services;
   offenderNames = lib.attrNames offenders;
 in {
   config.assertions = [

@@ -73,6 +73,22 @@
               inherit lib pkgs;
               module = ./modules/wifi-failover;
             };
+            timeout-audit-contract = import ./tests/timeout-audit-contract.nix {
+              inherit lib pkgs;
+              module = ./modules/timeout-audit;
+            };
+            start-limit-audit-contract = import ./tests/start-limit-audit-contract.nix {
+              inherit lib pkgs;
+              module = ./modules/start-limit-audit;
+            };
+            tmp-cleaner-audit-contract = import ./tests/tmp-cleaner-audit-contract.nix {
+              inherit lib pkgs;
+              module = ./modules/tmp-cleaner-audit;
+            };
+            systemd-shape-audit-contract = import ./tests/systemd-shape-audit-contract.nix {
+              inherit lib pkgs;
+              module = ./modules/systemd-shape-audit;
+            };
             module-list = pkgs.runCommand "module-list" {} ''
               # Forces evaluation of every discovered module path and records the
               # public surface; a change here shows up as a check-input diff.

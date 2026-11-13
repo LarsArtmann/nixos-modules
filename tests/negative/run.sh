@@ -26,7 +26,7 @@ SYSTEM="$(uname -m)-linux"
 WORK="$(mktemp -d "${XDG_CACHE_HOME:-$HOME/.cache}/negative-collection.XXXXXX")"
 [ "${KEEP:-0}" = "1" ] || trap 'rm -rf "$WORK"' EXIT
 
-ALL_GROUPS="bootmirror hottier hotdirmigrate wififailover lib optionsjson"
+ALL_GROUPS="bootmirror hottier hotdirmigrate wififailover timeoutaudit startlimit tmpcleaner shapeaudit lib optionsjson"
 
 if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
 	sed -n 's/^# \?//p' "$0" | sed -n '2,30p'
@@ -116,7 +116,7 @@ run_case() {
 	esac
 }
 
-ALL_GROUPS="bootmirror hottier hotdirmigrate wififailover lib optionsjson"
+ALL_GROUPS="bootmirror hottier hotdirmigrate wififailover timeoutaudit startlimit tmpcleaner shapeaudit lib optionsjson"
 
 # ── bootmirror: the 2026-10-17 gen-922 stale-boot class ──
 # These legs moved from SystemNix scripts/negative-test-lints.sh when the
@@ -201,6 +201,46 @@ group_optionsjson() {
 		'tests/options-json.nix' '-'
 	run_case optionsjson provenance-broken options-json fail 'provenance broken for' \
 		'tests/options-json.nix' 's|hasSuffix "/modules/|hasSuffix "/modules-mutated/|'
+}
+
+# ── the four A1a audit gates (moved from SystemNix 2026-11-13): each module
+#    detection neuter + each contract-fixture violation must break the build ──
+group_timeoutaudit() {
+	run_case timeoutaudit green-control timeout-audit-contract pass - \
+		'modules/timeout-audit/default.nix' '-'
+	run_case timeoutaudit default-neutered timeout-audit-contract fail 'must default to 3min' \
+		'modules/timeout-audit/default.nix' 's|"3min"|"1min"|'
+}
+
+group_startlimit() {
+	run_case startlimit green-control start-limit-audit-contract pass - \
+		'modules/start-limit-audit/default.nix' '-'
+	run_case startlimit detection-neutered start-limit-audit-contract fail 'must flag a StartLimitBurst-in-serviceConfig offender' \
+		'modules/start-limit-audit/default.nix' 's|"StartLimitBurst"|"StartLimitBurstMutated"|g'
+	run_case startlimit fixture-stripped start-limit-audit-contract fail 'must flag a StartLimitBurst-in-serviceConfig offender' \
+		'tests/start-limit-audit-contract.nix' 's|StartLimitBurst = 5;|enable = true;|'
+}
+
+group_tmpcleaner() {
+	run_case tmpcleaner green-control tmp-cleaner-audit-contract pass - \
+		'modules/tmp-cleaner-audit/default.nix' '-'
+	run_case tmpcleaner detection-neutered tmp-cleaner-audit-contract fail 'must flag an inline /tmp' \
+		'modules/tmp-cleaner-audit/default.nix' 's|"/tmp/\*"|"/tmpMutated/*"|'
+	run_case tmpcleaner exemption-broken tmp-cleaner-audit-contract fail 'the systemd-private exclusion form must pass' \
+		'tests/tmp-cleaner-audit-contract.nix' 's|\*systemd-private-\*|*systemd-private-mutated-*|'
+}
+
+group_shapeaudit() {
+	run_case shapeaudit green-control systemd-shape-audit-contract pass - \
+		'modules/systemd-shape-audit/default.nix' '-'
+	run_case shapeaudit class1-neutered systemd-shape-audit-contract fail 'Type=oneshot combined with an invalid Restart' \
+		'modules/systemd-shape-audit/default.nix' 's|^        "always"$|        "always-mutated"|'
+	run_case shapeaudit class7-neutered systemd-shape-audit-contract fail 'unbounded TimeoutStartSec' \
+		'modules/systemd-shape-audit/default.nix' 's|"multi-user.target"|"multi-user-mutated.target"|'
+	run_case shapeaudit class9-neutered systemd-shape-audit-contract fail 'nested inside unitConfig' \
+		'modules/systemd-shape-audit/default.nix' 's|^        "TimeoutStartSec"$|        "TimeoutStartSec-mutated"|'
+	run_case shapeaudit class1-fixture-stripped systemd-shape-audit-contract fail 'class marker missing' \
+		'tests/systemd-shape-audit-contract.nix' 's|Restart = "always";|Restart = "no";|'
 }
 pids=()
 for g in $ALL_GROUPS; do

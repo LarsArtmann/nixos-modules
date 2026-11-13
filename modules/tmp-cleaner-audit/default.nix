@@ -70,7 +70,8 @@
         map (s: {
           inherit name s;
         }) (builtins.filter isOffender (unitCommandStrings unit))
-    ) config.systemd.services
+    )
+    config.systemd.services
   );
 
   offenderLines = map (o: "${o.name}: ${lib.strings.substring 0 160 o.s}") offenders;

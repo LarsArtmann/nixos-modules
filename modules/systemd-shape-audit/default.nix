@@ -112,8 +112,7 @@
   config,
   lib,
   ...
-}:
-let
+}: let
   cfg = config.services.systemd-shape-audit;
 
   invalidOneshotRestarts = [
@@ -124,43 +123,47 @@ let
   ];
 
   # --- class 1: Type=oneshot + invalid Restart ---
-  oneshotOffenders =
-    let
-      bad = lib.filterAttrs (
+  oneshotOffenders = let
+    bad =
+      lib.filterAttrs (
         _name: svc:
-        (svc.serviceConfig.Type or null) == "oneshot"
-        && builtins.elem (svc.serviceConfig.Restart or null) invalidOneshotRestarts
-      ) config.systemd.services;
-    in
+          (svc.serviceConfig.Type or null)
+          == "oneshot"
+          && builtins.elem (svc.serviceConfig.Restart or null) invalidOneshotRestarts
+      )
+      config.systemd.services;
+  in
     lib.attrNames bad;
 
   # --- class 2: matching timer + Restart != no ---
   # A timer named X drives service X (systemd timer-unit semantics).
-  timerOffenders =
-    let
-      activeTimers = lib.filterAttrs (_n: t: t.enable) config.systemd.timers;
-      driven = lib.filterAttrs (name: _t: config.systemd.services ? ${name}) activeTimers;
-      bad = lib.filterAttrs (
-        name: _t:
-        let
+  timerOffenders = let
+    activeTimers = lib.filterAttrs (_n: t: t.enable) config.systemd.timers;
+    driven = lib.filterAttrs (name: _t: config.systemd.services ? ${name}) activeTimers;
+    bad =
+      lib.filterAttrs (
+        name: _t: let
           svc = config.systemd.services.${name};
         in
-        (svc.serviceConfig.Restart or null) != null
-        && svc.serviceConfig.Restart != "no"
-        && !builtins.elem name cfg.allowTimerRestart
-      ) driven;
-    in
+          (svc.serviceConfig.Restart or null)
+          != null
+          && svc.serviceConfig.Restart != "no"
+          && !builtins.elem name cfg.allowTimerRestart
+      )
+      driven;
+  in
     lib.attrNames bad;
 
   # --- class 3: Path units triggered by PathExists/PathExistsGlob ---
-  pathOffenders =
-    let
-      bad = lib.filterAttrs (
+  pathOffenders = let
+    bad =
+      lib.filterAttrs (
         _name: p:
-        (p.pathConfig ? PathExists && p.pathConfig.PathExists != null)
-        || (p.pathConfig ? PathExistsGlob && p.pathConfig.PathExistsGlob != null)
-      ) config.systemd.paths;
-    in
+          (p.pathConfig ? PathExists && p.pathConfig.PathExists != null)
+          || (p.pathConfig ? PathExistsGlob && p.pathConfig.PathExistsGlob != null)
+      )
+      config.systemd.paths;
+  in
     lib.attrNames bad;
 
   # --- class 4: literal $HOME in USER unit Exec lines ---
@@ -175,17 +178,19 @@ let
     "ExecReload"
     "ExecCondition"
   ];
-  homeOffenders =
-    let
-      bad = lib.filterAttrs (
+  homeOffenders = let
+    bad =
+      lib.filterAttrs (
         _name: svc:
-        builtins.any (
-          k:
-          svc.serviceConfig ? ${k}
-          && lib.hasInfix "$HOME" (lib.concatMapStringsSep " " toString (lib.toList svc.serviceConfig.${k}))
-        ) userExecKeys
-      ) config.systemd.user.services;
-    in
+          builtins.any (
+            k:
+              svc.serviceConfig ? ${k}
+              && lib.hasInfix "$HOME" (lib.concatMapStringsSep " " toString (lib.toList svc.serviceConfig.${k}))
+          )
+          userExecKeys
+      )
+      config.systemd.user.services;
+  in
     lib.attrNames bad;
 
   # --- class 5: unit-level script options nested inside serviceConfig ---
@@ -201,12 +206,13 @@ let
     "stopScript"
     "reloadScript"
   ];
-  scriptInServiceConfigOffenders =
-    let
-      bad = lib.filterAttrs (
+  scriptInServiceConfigOffenders = let
+    bad =
+      lib.filterAttrs (
         _name: svc: builtins.any (k: svc.serviceConfig ? ${k}) unitScriptKeys
-      ) config.systemd.services;
-    in
+      )
+      config.systemd.services;
+  in
     lib.attrNames bad;
 
   # --- class 6: one RuntimeDirectory declared by more than one unit ---
@@ -216,25 +222,22 @@ let
   # groupBy no longer folds a list of records into an attrset of lists
   # (breaks eval with "expected a set but found a list"); the foldl'
   # accumulation is version-stable.
-  sharedRuntimeDirs =
-    let
-      units = lib.mapAttrsToList (name: svc: { inherit name svc; }) config.systemd.services;
-      addUnitDirs =
-        acc: p:
-        let
-          dirs = builtins.map toString (lib.toList (p.svc.serviceConfig.RuntimeDirectory or [ ]));
-        in
-        if !p.svc.enable then
-          acc
-        else
-          builtins.foldl' (acc': x: acc' // { ${x.dir} = (acc'.${x.dir} or [ ]) ++ [ x ]; }) acc (
-            builtins.map (d: {
-              inherit (p) name;
-              dir = d;
-            }) (builtins.filter (d: d != "") dirs)
-          );
+  sharedRuntimeDirs = let
+    units = lib.mapAttrsToList (name: svc: {inherit name svc;}) config.systemd.services;
+    addUnitDirs = acc: p: let
+      dirs = builtins.map toString (lib.toList (p.svc.serviceConfig.RuntimeDirectory or []));
     in
-    lib.filterAttrs (_dir: owners: builtins.length owners > 1) (builtins.foldl' addUnitDirs { } units);
+      if !p.svc.enable
+      then acc
+      else
+        builtins.foldl' (acc': x: acc' // {${x.dir} = (acc'.${x.dir} or []) ++ [x];}) acc (
+          builtins.map (d: {
+            inherit (p) name;
+            dir = d;
+          }) (builtins.filter (d: d != "") dirs)
+        );
+  in
+    lib.filterAttrs (_dir: owners: builtins.length owners > 1) (builtins.foldl' addUnitDirs {} units);
 
   # --- class 7: boot-blocking oneshots with unbounded TimeoutStartSec ---
   # unset == systemd's INFINITE oneshot default; "infinity" is explicit.
@@ -247,21 +250,22 @@ let
     # here now — still boot-started, so the oneshot bound still applies.
     "late-applications.target"
   ];
-  oneshotTimeoutOffenders =
-    let
-      bad = lib.filterAttrs (
+  oneshotTimeoutOffenders = let
+    bad =
+      lib.filterAttrs (
         name: svc:
-        svc.enable
-        && (svc.serviceConfig.Type or null) == "oneshot"
-        && builtins.any (w: builtins.elem w bootBlockingTargets) (svc.wantedBy or [ ])
-        && (
-          !(svc.serviceConfig ? TimeoutStartSec)
-          || svc.serviceConfig.TimeoutStartSec == null
-          || svc.serviceConfig.TimeoutStartSec == "infinity"
-        )
-        && !builtins.elem name cfg.allowUnboundedOneshot
-      ) config.systemd.services;
-    in
+          svc.enable
+          && (svc.serviceConfig.Type or null) == "oneshot"
+          && builtins.any (w: builtins.elem w bootBlockingTargets) (svc.wantedBy or [])
+          && (
+            !(svc.serviceConfig ? TimeoutStartSec)
+            || svc.serviceConfig.TimeoutStartSec == null
+            || svc.serviceConfig.TimeoutStartSec == "infinity"
+          )
+          && !builtins.elem name cfg.allowUnboundedOneshot
+      )
+      config.systemd.services;
+  in
     lib.attrNames bad;
 
   # --- class 8: OnFailure nested inside serviceConfig ---
@@ -479,28 +483,29 @@ let
     "IPIngressFilterPath"
     "IPEgressFilterPath"
   ];
-  serviceKeysInUnitConfig =
-    svc:
-    let
-      present = builtins.filter (
-        k: svc.unitConfig.${k} != null && (builtins.elem k serviceSectionKeys || lib.hasPrefix "Limit" k)
-      ) (builtins.attrNames svc.unitConfig);
-    in
-    if present == [ ] then null else present;
-  serviceKeyInUnitConfigOffenders =
-    let
-      bad = lib.filterAttrs (
-        name: svc:
-        let
+  serviceKeysInUnitConfig = svc: let
+    present = builtins.filter (
+      k: svc.unitConfig.${k} != null && (builtins.elem k serviceSectionKeys || lib.hasPrefix "Limit" k)
+    ) (builtins.attrNames svc.unitConfig);
+  in
+    if present == []
+    then null
+    else present;
+  serviceKeyInUnitConfigOffenders = let
+    bad =
+      lib.filterAttrs (
+        name: svc: let
           keys = serviceKeysInUnitConfig svc;
         in
-        keys != null && builtins.any (k: !builtins.elem "${name}:${k}" cfg.allowUnitConfigServiceKeys) keys
-      ) config.systemd.services;
-    in
+          keys != null && builtins.any (k: !builtins.elem "${name}:${k}" cfg.allowUnitConfigServiceKeys) keys
+      )
+      config.systemd.services;
+  in
     lib.mapAttrsToList (name: svc: {
       inherit name;
       keys = serviceKeysInUnitConfig svc;
-    }) bad;
+    })
+    bad;
 
   # --- class 10: is-active probes against oneshot-without-RemainAfterExit
   # See the header comment for the two live lessons. Static analysis of
@@ -523,11 +528,10 @@ let
     "stopScript"
     "reloadScript"
   ];
-  unitProbeText =
-    svc:
+  unitProbeText = svc:
     lib.concatStringsSep "\n" (
       map toString (
-        (lib.flatten (map (k: lib.toList (svc.serviceConfig.${k} or [ ])) execScanKeys))
+        (lib.flatten (map (k: lib.toList (svc.serviceConfig.${k} or [])) execScanKeys))
         ++ (map (k: svc.${k} or "") scriptScanKeys)
       )
     );
@@ -536,28 +540,25 @@ let
   # backslash must be escaped FIRST or it re-escapes the dot escape).
   escUnitName =
     builtins.replaceStrings
-      [
-        "\\"
-        "."
-      ]
-      [
-        "\\\\"
-        "\\."
-      ];
+    [
+      "\\"
+      "."
+    ]
+    [
+      "\\\\"
+      "\\."
+    ];
   # Lines whose is-active call names `target` (bare, .service-suffixed,
   # or — for a template target — any instance of it).
-  isactiveProbeLine =
-    target: line:
-    let
-      base = lib.removeSuffix "@" target;
-      isTemplate = lib.hasSuffix "@" target;
-      token =
-        if isTemplate then
-          "${escUnitName base}(@[^[:space:];\"')&|]*(\\.service)?)"
-        else
-          "${escUnitName target}((\\.service)?)([[:space:];\"')&|]|$)";
-      pattern = ".*systemctl([[:space:]]+--[[:alnum:]-]+)*[[:space:]]+is-active([[:space:]]+--[[:alnum:]-]+)*[[:space:]]+${token}.*";
-    in
+  isactiveProbeLine = target: line: let
+    base = lib.removeSuffix "@" target;
+    isTemplate = lib.hasSuffix "@" target;
+    token =
+      if isTemplate
+      then "${escUnitName base}(@[^[:space:];\"')&|]*(\\.service)?)"
+      else "${escUnitName target}((\\.service)?)([[:space:];\"')&|]|$)";
+    pattern = ".*systemctl([[:space:]]+--[[:alnum:]-]+)*[[:space:]]+is-active([[:space:]]+--[[:alnum:]-]+)*[[:space:]]+${token}.*";
+  in
     builtins.match pattern line != null;
   # Oneshot units whose is-active verdict lies post-run (no
   # RemainAfterExit). RemainAfterExit flips the unit to "active
@@ -565,39 +566,39 @@ let
   # Accepted value shapes: bool true or the string "yes" (systemd
   # accepts both; nixpkgs modules emit either).
   remainAfterExitSet = v: v == true || v == "yes";
-  lyingOneshotTargets = lib.filterAttrs (
-    _name: svc:
-    svc.enable or true
-    && (svc.serviceConfig.Type or null) == "oneshot"
-    && !(remainAfterExitSet (svc.serviceConfig.RemainAfterExit or false))
-  ) config.systemd.services;
+  lyingOneshotTargets =
+    lib.filterAttrs (
+      _name: svc:
+        svc.enable or true
+        && (svc.serviceConfig.Type or null) == "oneshot"
+        && !(remainAfterExitSet (svc.serviceConfig.RemainAfterExit or false))
+    )
+    config.systemd.services;
   isactiveProbeOffenders = lib.concatMap (
-    prober:
-    let
+    prober: let
       text = unitProbeText prober.value;
     in
-    if !(prober.value.enable or true) then
-      [ ]
-    else if !lib.hasInfix "is-active" text then
-      [ ]
-    else
-      lib.concatMap (
-        targetName:
-        if builtins.elem "${prober.name}:${targetName}" cfg.allowOneshotIsactiveProbe then
-          [ ]
-        else
-          lib.optional (builtins.any (isactiveProbeLine targetName) (lib.splitString "\n" text)) {
-            prober = prober.name;
-            inherit targetName;
-          }
-      ) (lib.attrNames lyingOneshotTargets)
-  ) (lib.mapAttrsToList (name: value: { inherit name value; }) config.systemd.services);
-in
-{
+      if !(prober.value.enable or true)
+      then []
+      else if !lib.hasInfix "is-active" text
+      then []
+      else
+        lib.concatMap (
+          targetName:
+            if builtins.elem "${prober.name}:${targetName}" cfg.allowOneshotIsactiveProbe
+            then []
+            else
+              lib.optional (builtins.any (isactiveProbeLine targetName) (lib.splitString "\n" text)) {
+                prober = prober.name;
+                inherit targetName;
+              }
+        ) (lib.attrNames lyingOneshotTargets)
+  ) (lib.mapAttrsToList (name: value: {inherit name value;}) config.systemd.services);
+in {
   options.services.systemd-shape-audit = {
     allowTimerRestart = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ ];
+      default = [];
       description = ''
         Units with a matching timer whose Restart != no is deliberate:
         a bounded rapid-retry (e.g. 3x5s) that self-extinguishes via
@@ -607,7 +608,7 @@ in
     };
     allowUnboundedOneshot = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ ];
+      default = [];
       description = ''
         Boot-blocking (wantedBy multi-user/graphical) Type=oneshot units
         whose unbounded TimeoutStartSec is deliberate. Every entry MUST
@@ -617,7 +618,7 @@ in
     };
     allowUnitConfigServiceKeys = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ ];
+      default = [];
       description = ''
         "<unit>:<Key>" pairs where a [Service]-section key nested inside
         unitConfig is deliberate. Every entry MUST carry a justification
@@ -627,7 +628,7 @@ in
     };
     allowOneshotIsactiveProbe = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ ];
+      default = [];
       description = ''
         "<prober>:<target>" pairs where a `systemctl is-active <target>`
         call against a Type=oneshot unit without RemainAfterExit is
@@ -640,7 +641,7 @@ in
 
   config.assertions = [
     {
-      assertion = oneshotOffenders == [ ];
+      assertion = oneshotOffenders == [];
       message = ''
         systemd-shape-audit: Type=oneshot combined with an invalid Restart for:
         ${lib.concatStringsSep ", " oneshotOffenders}
@@ -652,7 +653,7 @@ in
       '';
     }
     {
-      assertion = timerOffenders == [ ];
+      assertion = timerOffenders == [];
       message = ''
         systemd-shape-audit: timer-driven unit(s) with Restart != no:
         ${lib.concatStringsSep ", " timerOffenders}
@@ -668,7 +669,7 @@ in
       '';
     }
     {
-      assertion = pathOffenders == [ ];
+      assertion = pathOffenders == [];
       message = ''
         systemd-shape-audit: path unit(s) triggered by PathExists/PathExistsGlob:
         ${lib.concatStringsSep ", " pathOffenders}
@@ -679,7 +680,7 @@ in
       '';
     }
     {
-      assertion = homeOffenders == [ ];
+      assertion = homeOffenders == [];
       message = ''
         systemd-shape-audit: user unit(s) with a literal $HOME in Exec lines:
         ${lib.concatStringsSep ", " homeOffenders}
@@ -689,7 +690,7 @@ in
       '';
     }
     {
-      assertion = scriptInServiceConfigOffenders == [ ];
+      assertion = scriptInServiceConfigOffenders == [];
       message = ''
         systemd-shape-audit: unit-level script option(s) nested inside serviceConfig:
         ${lib.concatStringsSep ", " scriptInServiceConfigOffenders}
@@ -704,13 +705,14 @@ in
       '';
     }
     {
-      assertion = sharedRuntimeDirs == { };
+      assertion = sharedRuntimeDirs == {};
       message = ''
         systemd-shape-audit: RuntimeDirectory declared by more than one unit:
         ${lib.concatStringsSep ", " (
           lib.mapAttrsToList (
             dir: owners: "${dir} (" + lib.concatStringsSep ", " (map (o: o.name) owners) + ")"
-          ) sharedRuntimeDirs
+          )
+          sharedRuntimeDirs
         )}
         systemd removes a unit's RuntimeDirectory when that unit stops —
         whichever unit stops first unlinks the OTHER unit's live files
@@ -723,7 +725,7 @@ in
       '';
     }
     {
-      assertion = oneshotTimeoutOffenders == [ ];
+      assertion = oneshotTimeoutOffenders == [];
       message = ''
         systemd-shape-audit: boot-blocking Type=oneshot unit(s) with unbounded TimeoutStartSec:
         ${lib.concatStringsSep ", " oneshotTimeoutOffenders}
@@ -739,7 +741,7 @@ in
       '';
     }
     {
-      assertion = onFailureInServiceConfigOffenders == [ ];
+      assertion = onFailureInServiceConfigOffenders == [];
       message = ''
         systemd-shape-audit: OnFailure nested inside serviceConfig for:
         ${lib.concatStringsSep ", " onFailureInServiceConfigOffenders}
@@ -753,7 +755,7 @@ in
       '';
     }
     {
-      assertion = serviceKeyInUnitConfigOffenders == [ ];
+      assertion = serviceKeyInUnitConfigOffenders == [];
       message = ''
         systemd-shape-audit: [Service]-section key(s) nested inside unitConfig for:
         ${lib.concatStringsSep ", " (
@@ -772,7 +774,7 @@ in
       '';
     }
     {
-      assertion = isactiveProbeOffenders == [ ];
+      assertion = isactiveProbeOffenders == [];
       message = ''
         systemd-shape-audit: `systemctl is-active` probe(s) against Type=oneshot
         units without RemainAfterExit:
