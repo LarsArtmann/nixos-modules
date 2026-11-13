@@ -1,6 +1,8 @@
 {
   projectRootFile = "flake.nix";
-  programs.alejandra.enable = true;
-  programs.deadnix.enable = true;
-  programs.statix.enable = true;
+  programs = {
+    alejandra.enable = true;
+    deadnix.enable = true;
+    statix.enable = true;
+  };
 }

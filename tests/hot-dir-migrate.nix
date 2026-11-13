@@ -115,33 +115,35 @@ in {
       fsType = "tmpfs";
     };
 
-    systemd.services.hot-dir-migrate-fixture = {
-      description = "hot-dir-migrate VM fixture tree (test-only)";
-      wantedBy = ["multi-user.target"];
-      before = [
-        "hot-dir-migrate.service"
-        "multi-user.target"
-      ];
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = lib.getExe fixtureSetup;
+    systemd.services = {
+      hot-dir-migrate-fixture = {
+        description = "hot-dir-migrate VM fixture tree (test-only)";
+        wantedBy = ["multi-user.target"];
+        before = [
+          "hot-dir-migrate.service"
+          "multi-user.target"
+        ];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = lib.getExe fixtureSetup;
+        };
       };
-    };
 
-    # Unit-level ordering: the fixture precedes EVERY migrate start job,
-    # including the Persistent timer's boot catch-up (see header).
-    systemd.services.hot-dir-migrate = {
-      wants = ["hot-dir-migrate-fixture.service"];
-      after = ["hot-dir-migrate-fixture.service"];
-    };
+      # Unit-level ordering: the fixture precedes EVERY migrate start job,
+      # including the Persistent timer's boot catch-up (see header).
+      hot-dir-migrate = {
+        wants = ["hot-dir-migrate-fixture.service"];
+        after = ["hot-dir-migrate-fixture.service"];
+      };
 
-    # A process NAMED `crush` holding a fixture crush.db open: the
-    # per-project guard must skip that project and ONLY that project.
-    systemd.services.crush-fake-session = {
-      description = "Fake crush session (test-only live-writer guard)";
-      serviceConfig = {
-        Type = "exec";
-        ExecStart = "${crushFakeBin} /home/lars/projects/late/.crush/crush.db";
+      # A process NAMED `crush` holding a fixture crush.db open: the
+      # per-project guard must skip that project and ONLY that project.
+      crush-fake-session = {
+        description = "Fake crush session (test-only live-writer guard)";
+        serviceConfig = {
+          Type = "exec";
+          ExecStart = "${crushFakeBin} /home/lars/projects/late/.crush/crush.db";
+        };
       };
     };
   };
