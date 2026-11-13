@@ -15,6 +15,8 @@ nix flake check               # formatting + module-path assert + all checks
 nix build .#checks.x86_64-linux.boot-mirror-contract  # one check, no VM
 nix build .#checks.x86_64-linux.wifi-failover-vm      # the VM test alone
 bash tests/negative/run.sh    # mutation tests — NOT part of flake check
+                               # (failing groups print full transcripts from
+                               #  ~/.cache/negative-collection/groups/)
 CASES=bootmirror bash tests/negative/run.sh  # filter one case group
 KEEP=1 bash tests/negative/run.sh            # keep mutated copy for triage
 PARALLEL=0 bash tests/negative/run.sh        # serialize groups (triage)
