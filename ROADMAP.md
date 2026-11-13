@@ -31,8 +31,13 @@ consumer-side integrations.
 
 Raw ideas:
 
-- Migrate `dual-wan` (the probe-based ECMP+MPTCP partner that wifi-failover's
-  conflict assertion names) once its consumer story is settled
+- Migrate `dual-wan` — DROPPED 2026-11-13 (SUPERB T13 verdict): the stack
+  is retired fleet-side. Evidence: SystemNix's
+  `scripts/mptcp-endpoint-manager.sh` carries a RETIRED-STACK banner
+  (2026-09-16: "replaced by services.wifi-failover … nothing invokes this
+  script"), and the fleet config sets `dual-wan.enable = false`. Migrating
+  it would resurrect dead code; re-open ONLY if a real dual-WAN consumer
+  returns (wifi-failover's conflict assertion stays as standing defense)
 - Extract further proven pattern modules on demand — collection grows with
   real consumers, not speculatively
 - boot-mirror contract single-sourcing — PARKED 2026-11-13 (SUPERB T10
