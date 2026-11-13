@@ -28,6 +28,6 @@ services.memory-watermark-audit.allowUnits = ["aggressive-reclaimer"];
 
 ## Options
 
-| Option       | Type       | Default | Notes                                        |
-| ------------ | ---------- | ------- | -------------------------------------------- |
-| `allowUnits` | listOf str | `[]`    | deliberate sub-50% watermarks                |
+| Option       | Type       | Default | Notes                         |
+| ------------ | ---------- | ------- | ----------------------------- |
+| `allowUnits` | listOf str | `[]`    | deliberate sub-50% watermarks |

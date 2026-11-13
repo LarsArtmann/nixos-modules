@@ -18,9 +18,9 @@
 
 ## High Impact
 
-| Task                                                                             | Status       | Impact | Effort | Evidence                                                                                                                                 |
-| ------------------------------------------------------------------------------- | ------------ | ------ | ------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| v0.1.1 patch tag decision (two lib fixes + CI-verified state; owner question g3) | 🔵 `BLOCKED` | High   | 10min  | Owner call; the release content exists (CHANGELOG bullet list), the tag does not                                                         |
+| Task                                                                             | Status       | Impact | Effort | Evidence                                                                         |
+| -------------------------------------------------------------------------------- | ------------ | ------ | ------ | -------------------------------------------------------------------------------- |
+| v0.1.1 patch tag decision (two lib fixes + CI-verified state; owner question g3) | 🔵 `BLOCKED` | High   | 10min  | Owner call; the release content exists (CHANGELOG bullet list), the tag does not |
 
 ## Medium Impact
 

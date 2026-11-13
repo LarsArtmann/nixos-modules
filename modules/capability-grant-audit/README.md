@@ -27,6 +27,6 @@ services.capability-grant-audit.allow = ["doc-only-caps-unit"];
 
 ## Options
 
-| Option  | Type       | Default | Notes                                    |
-| ------- | ---------- | ------- | ---------------------------------------- |
+| Option  | Type       | Default | Notes                                     |
+| ------- | ---------- | ------- | ----------------------------------------- |
 | `allow` | listOf str | `[]`    | deliberate ungranted DAC bounding entries |
