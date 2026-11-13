@@ -159,6 +159,14 @@ _: {
     # Wait out systemd's mount-monitoring lag: until the umount is PROCESSED,
     # the mount unit still reads active and the restart would skip the mount
     # job entirely (observed: the script ran against the bare mountpoint).
+    _, diag = machine.execute(
+        "grep boot-mirror /proc/mounts; echo ---"
+        "; systemctl is-active 'boot\\\\x2dmirror.mount'"
+        "; systemctl show 'boot\\\\x2dmirror.mount' -p ActiveState,SubState,Result"
+        "; findmnt /boot-mirror"
+        "; echo ---"
+    )
+    print("DIAG:" + diag)
     machine.wait_until_succeeds(
         "! systemctl is-active -q 'boot\\x2dmirror.mount'"
     )
