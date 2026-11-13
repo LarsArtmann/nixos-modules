@@ -137,18 +137,23 @@ _: {
     assert "nixos-vmtest.conf" in src_blessed and "+3" not in machine.succeed("ls /boot-mirror/loader/entries/"), \
       "blessed entry did not converge"
 
-    # 3. Degradation: mirror detached = its partition deleted. The sync's
-    # RequiresMountsFor pulls the mount unit into every start transaction,
-    # so a detached mirror FAILS THE START JOB (dependency): the script
-    # never runs — wants-not-requires means the failed unit never blocks
-    # boot (proven above: multi-user was reached mirror-less). (A plain
-    # umount is NOT degradation: the pulled mount job would just remount
-    # the still-formatted vdb1.)
-    machine.succeed("umount /boot-mirror")
-    # Delete the partition (not wipefs: probing the still-present node
-    # races EBUSY): the device vanishes, the mount unit's 1s device-timeout
-    # fails it, and the service job dependency-fails.
-    machine.succeed("sfdisk --delete /dev/vdb 1 && udevadm settle")
+    # 3. Degradation: mirror detached = its kernel partition removed. The
+    # sync's RequiresMountsFor pulls the mount unit into every start
+    # transaction, so a detached mirror FAILS THE START JOB (dependency):
+    # the script never runs — the failed unit never blocks boot (proven
+    # above: multi-user was reached mirror-less). (A plain umount is NOT
+    # degradation: the pulled mount job would just remount vdb1.)
+    machine.succeed("umount /boot-mirror && udevadm settle")
+    # Detach the mirror: drop the kernel partition + node. Transient holders
+    # right after the umount (mount-unit teardown, udev probing) make the
+    # first BLKPG delete race EBUSY — retry until the node is truly gone
+    # (sfdisk --delete alone rewrites the table but left the node
+    # mountable: the pulled mount job remounted it and bootctl failed
+    # exit-code instead of the dependency path).
+    machine.succeed(
+        "for i in $(seq 1 10); do partx -d --nr 1 /dev/vdb && break; sleep 1; done;"
+        " test ! -e /dev/vdb1"
+    )
     machine.fail("systemctl restart boot-mirror-sync.service")
     # Empirical systemd semantics (pinned): a detached mirror fails the
     # start JOB through RequiresMountsFor — Result=dependency — so the sync
@@ -163,8 +168,12 @@ _: {
     # 4. Loud failure: a read-only mirror (partial-copy stand-in) fails the
     # unit — the diff-gate posture: never call a partial mirror current.
     machine.succeed(
-        "printf 'label: gpt\ntype=C12A7328-F81F-11D2-BA4B-00A0C93EC93B\n'"
+        "printf 'label: gpt\\ntype=C12A7328-F81F-11D2-BA4B-00A0C93EC93B\\n'"
         " | sfdisk --wipe always /dev/vdb && udevadm settle"
+    )
+    machine.succeed(
+        "for i in $(seq 1 20); do [ -b /dev/vdb1 ] && break; sleep 1; done;"
+        " test -b /dev/vdb1"
     )
     machine.succeed("mkfs.vfat -n MIRRORESP /dev/vdb1 && udevadm settle")
     machine.succeed("mount /dev/vdb1 /boot-mirror")
