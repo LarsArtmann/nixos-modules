@@ -38,10 +38,10 @@
           line:
             if lib.hasPrefix "| `" line
             then [
-              builtins.head (
+              (builtins.head (
                 lib.filter (x: x != "")
                 (lib.splitString "`" (lib.removePrefix "| `" line))
-              )
+              ))
             ]
             else []
         )
