@@ -2,6 +2,13 @@ result
 result-*
 .direnv
 
+# Deliberately absent (2026-11-12): dprint's plugins are remote-fetched WASM
+# and cannot run inside hermetic flake checks. Ignored so the auto-commit
+# daemon cannot resurrect it (it re-added the deleted file twice,
+# byte-identical, 2026-11-13).
+dprint.json
+
+
 # Secrets and environment
 .env
 .env.local

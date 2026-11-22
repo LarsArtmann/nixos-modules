@@ -210,7 +210,7 @@
   pathTriggerOffenders =
     pathTriggerOffendersIn config.systemd.paths config.systemd.services
     ++ userPathTriggerOffenders;
-  userPathTriggerOffenders = lib.mapAttrsToList (n: _: "user:${n}") (
+  userPathTriggerOffenders = map (n: "user:${n}") (
     pathTriggerOffendersIn config.systemd.user.paths config.systemd.user.services
   );
 
