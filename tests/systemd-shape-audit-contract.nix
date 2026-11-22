@@ -79,23 +79,30 @@
               RemainAfterExit = true;
             };
           };
-          # class 11, user-manager half: same bug in `systemctl --user`
-          user.services.shape-c11u.serviceConfig = {
-            Type = "oneshot";
-            RemainAfterExit = true;
-          };
           # class 2 (timer half): the matching timer that drives shape-c2
           timers.shape-c2 = {
             wantedBy = ["timers.target"];
             timerConfig.OnCalendar = "daily";
           };
-          # class 3: path unit triggered by PathExists (re-fire loop)
-          paths.shape-c3.pathConfig.PathExists = "/tmp/shape-c3";
-          # class 11: same-named default target (shape-c11.service)
-          paths.shape-c11.pathConfig.PathChanged = "/tmp/shape-c11";
-          user.paths.shape-c11u.pathConfig.PathChanged = "/tmp/shape-c11u";
-          # class 4: literal $HOME in a USER unit Exec line
-          user.services.shape-c4.serviceConfig.ExecStart = "/bin/app --config $HOME/.config/app";
+          paths = {
+            # class 3: path unit triggered by PathExists (re-fire loop)
+            shape-c3.pathConfig.PathExists = "/tmp/shape-c3";
+            # class 11: same-named default target (shape-c11.service)
+            shape-c11.pathConfig.PathChanged = "/tmp/shape-c11";
+          };
+          user = {
+            services = {
+              # class 11, user-manager half: same bug in `systemctl --user`
+              # (offenders are reported as user:<name>)
+              shape-c11u.serviceConfig = {
+                Type = "oneshot";
+                RemainAfterExit = true;
+              };
+              # class 4: literal $HOME in a USER unit Exec line
+              shape-c4.serviceConfig.ExecStart = "/bin/app --config $HOME/.config/app";
+            };
+            paths.shape-c11u.pathConfig.PathChanged = "/tmp/shape-c11u";
+          };
         };
       }
     ]
