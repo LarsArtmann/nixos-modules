@@ -53,6 +53,10 @@
   src = cfg.sourceEsp;
   mirror = cfg.mountPoint;
 
+  # The reverse-propagation's bless-branch command, hoisted so the eval-time
+  # self-assertion below can pin it (same pattern as the diff-gate pin).
+  convergeToBlessed = "mv -f \"${src}/loader/entries/\${entry}\" \"${src}/loader/entries/\${stem}.conf\"";
+
   # rsync to vfat: --no-owner/--no-group/--no-perms because FAT cannot store
   # unix ownership (chown would EPERM under harden{}'s empty cap set) and the
   # mount's fmask/dmask already present everything as 0700. --modify-window=2
@@ -276,8 +280,7 @@ in {
           # ESPs agree again) while leaving the running generation WITHOUT a
           # boot entry until the next builder run. The bless-twin-dropped
           # mutation legs prove this pin bites.
-          assertion =
-            lib.hasInfix ''mv -f "''${src}/loader/entries/''${entry}" "''${src}/loader/entries/''${stem}.conf"'' syncText;
+          assertion = lib.hasInfix convergeToBlessed syncText;
           message = "boot-mirror-sync: a blessed entry must be converged (its managed counting twin renamed to the blessed name), never dropped — a dropped twin lets the forward rsync delete the blessed entry, leaving the running generation without a boot entry";
         }
       ];

@@ -8,6 +8,11 @@
 #      is matched to the mirror's counter BEFORE the forward copy (the
 #      counters-survive-the-mirror contract), and a blessed entry drops its
 #      stale counting twin.
+#   2b. blessing, production shape: the BOOTED ESP (mirror) holds the plain
+#      blessed name while the managed ESP still carries the counting twin —
+#      the sync converges the twin to the blessed name so BOTH ESPs keep the
+#      entry (dropping it left the running generation without a boot entry
+#      until the next builder run — live 2026-11-19, evo-x2).
 #   3. degradation: with the mirror's fs zeroed (disk attached,
 #      filesystem unreadable), the sync's start job dies on its
 #      RequiresMountsFor dependency (the mount carries exit-code; the
@@ -142,6 +147,20 @@ _: {
     # The diff gate ran: unit success IS tree-identity (random-seed excluded,
     # per-ESP by design).
     assert "loader.conf" in machine.succeed("ls /boot-mirror/loader/"), "mirror missing loader.conf"
+    # No self-trigger loop: the sync's own reverse-propagation renames land in
+    # the watched dir while the path unit holds no watch, and the re-arm on
+    # deactivation never reports a PathChanged condition — the run count must
+    # be stable once the triggered sync has gone inactive.
+    ok_runs = machine.succeed(
+        "journalctl -u boot-mirror-sync.service -o cat | grep -c 'boot-mirror-sync: OK'"
+    ).strip()
+    machine.succeed("sleep 3")
+    ok_runs_after = machine.succeed(
+        "journalctl -u boot-mirror-sync.service -o cat | grep -c 'boot-mirror-sync: OK'"
+    ).strip()
+    assert ok_runs == ok_runs_after, (
+        f"the sync re-triggered itself: {ok_runs} -> {ok_runs_after} OK runs in 3s"
+    )
 
     # 2. Reverse-propagation: a loader-side boot-count rename on the SOURCE
     # (booted-side state) converges to the mirror's counter name. The mirror
@@ -156,15 +175,28 @@ _: {
     diff_out = machine.succeed("diff -r -x random-seed /boot /boot-mirror")
     assert diff_out == "", f"mirror diverged after counter convergence: {diff_out!r}"
 
-    # 2b. Blessing: a blessed entry (counter stripped on the booted side,
-    # twin still counting on the managed side) drops its stale twin BEFORE
-    # the forward copy.
-    machine.succeed("mv '/boot/loader/entries/nixos-vmtest+2-1.conf' '/boot/loader/entries/nixos-vmtest.conf'")
-    machine.succeed("mv '/boot-mirror/loader/entries/nixos-vmtest+2-1.conf' '/boot-mirror/loader/entries/nixos-vmtest+3.conf'")
-    machine.succeed("systemctl restart boot-mirror-sync.service")
-    src_blessed = machine.succeed("ls /boot/loader/entries/").strip()
-    assert "nixos-vmtest.conf" in src_blessed and "+3" not in machine.succeed("ls /boot-mirror/loader/entries/"), \
-      "blessed entry did not converge"
+    # 2b. Blessing, production shape: systemd-bless-boot strips the counter
+    # on the BOOTED ESP (the mirror) once boot-complete.target is reached, so
+    # the mirror holds the plain name while the managed ESP still carries the
+    # counting twin. The sync must CONVERGE the managed twin to the blessed
+    # name — both ESPs keep the entry. Dropping the twin instead lets the
+    # forward rsync --delete the mirror's blessed entry, and the running
+    # generation is left without a boot entry until the next builder run
+    # (live 2026-11-19, evo-x2). Mirror-side setup first: that directory is
+    # not watched, so nothing triggers before the explicit start below.
+    machine.succeed(
+        "mv '/boot-mirror/loader/entries/nixos-vmtest+2-1.conf'"
+        " '/boot-mirror/loader/entries/nixos-vmtest.conf'"
+    )
+    machine.succeed("systemctl start boot-mirror-sync.service")
+    blessed_src = machine.succeed("ls /boot/loader/entries/").strip()
+    assert "nixos-vmtest.conf" in blessed_src and "+2-1" not in blessed_src, (
+        f"blessed entry was dropped from the managed ESP instead of converged: {blessed_src!r}"
+    )
+    blessed_mirror = machine.succeed("ls /boot-mirror/loader/entries/").strip()
+    assert "nixos-vmtest.conf" in blessed_mirror and "+2-1" not in blessed_mirror, (
+        f"blessed entry was dropped from the mirror instead of kept: {blessed_mirror!r}"
+    )
 
     # 3. Degradation: the mirror goes unusable. Unmount through the unit
     # (systemctl stop: synchronous, no stacked-mount hazard, no
@@ -205,6 +237,15 @@ _: {
     machine.succeed("mount -o remount,ro /boot-mirror")
     machine.succeed("touch /boot/loader/entries/trigger-ro.conf")
     machine.fail("systemctl start boot-mirror-sync.service")
+    # The failure must be the SCRIPT's (bootctl/rsync on a read-only ESP),
+    # never a start-limit refusal or a dependency skip — `machine.fail` alone
+    # cannot tell those apart.
+    loud_result = machine.succeed(
+        "systemctl show boot-mirror-sync.service -p Result --value"
+    ).strip()
+    assert loud_result == "exit-code", (
+        f"the read-only-mirror sync must fail inside the script (exit-code), got {loud_result!r}"
+    )
     machine.succeed("mount -o remount,rw /boot-mirror")
   '';
 }
