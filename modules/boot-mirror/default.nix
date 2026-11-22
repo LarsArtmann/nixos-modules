@@ -18,7 +18,12 @@
 # before the forward rsync — a plain forward mirror would `--delete` the
 # renames, silently resetting a converging boot counter or un-blessing a good
 # entry. NixOS content still flows primary -> mirror only; filenames are
-# content-hashed, so the two flows never collide.
+# content-hashed, so the two flows never collide. A BLESSED entry (suffix
+# stripped by systemd-bless-boot on the booted ESP) converges the same way:
+# the managed counting twin is renamed to the blessed name, never dropped —
+# a dropped twin lets the forward `--delete` remove the blessed entry from the
+# mirror too, and the running generation has no boot entry on either ESP
+# until the next builder run (live 2026-11-19, evo-x2).
 #
 # The FIRMWARE switch (EFI entry + BootOrder) is deliberately NOT automatic:
 # it is an operator decision (a one-shot activation command at the consumer).
@@ -87,7 +92,18 @@
         fi
         stem=''${BASH_REMATCH[1]}
         if [ -e "${mirror}/loader/entries/''${stem}.conf" ]; then
-          rm -f "${src}/loader/entries/''${entry}" # blessed on the booted ESP: drop the stale counting twin
+          # Blessed on the booted ESP (systemd-bless-boot strips the suffix
+          # once boot-complete.target is reached). CONVERGE the managed twin
+          # to the blessed name — never just drop it: without a plain twin on
+          # the managed ESP the forward rsync below would --delete the
+          # mirror's blessed entry too, and the running generation would have
+          # no boot entry on either ESP until the next builder run (live
+          # 2026-11-19: gen-1015 entryless 00:11 -> 15:45).
+          if [ -e "${src}/loader/entries/''${stem}.conf" ]; then
+            rm -f "${src}/loader/entries/''${entry}"
+          else
+            mv -f "${src}/loader/entries/''${entry}" "${src}/loader/entries/''${stem}.conf"
+          fi
         else
           matched=$(find "${mirror}/loader/entries" -maxdepth 1 -type f -name "''${stem}+*.conf" -printf '%f\n' | head -n 1)
           # A converged twin is a correct NO-OP: on case-insensitive vfat,
@@ -252,6 +268,17 @@ in {
             lib.hasInfix ''if ! diff -r -x random-seed -x "System Volume Information"'' syncText
             && lib.hasInfix "refusing to call the 2nd boot disk current" syncText;
           message = "boot-mirror-sync: the diff -r verification gate must stay — a mirror allowed to silently diverge is a stale-boot trap";
+        }
+        {
+          # Self-pinned contract (2026-11-22 blessed-entry class): the bless
+          # branch of the reverse-propagation must CONVERGE the managed twin
+          # to the blessed name. A plain `rm` there passes the diff gate (both
+          # ESPs agree again) while leaving the running generation WITHOUT a
+          # boot entry until the next builder run. The bless-twin-dropped
+          # mutation legs prove this pin bites.
+          assertion =
+            lib.hasInfix ''mv -f "''${src}/loader/entries/''${entry}" "''${src}/loader/entries/''${stem}.conf"'' syncText;
+          message = "boot-mirror-sync: a blessed entry must be converged (its managed counting twin renamed to the blessed name), never dropped — a dropped twin lets the forward rsync delete the blessed entry, leaving the running generation without a boot entry";
         }
       ];
     }
