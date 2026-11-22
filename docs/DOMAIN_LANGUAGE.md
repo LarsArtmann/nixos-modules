@@ -43,6 +43,7 @@ Definitions describe how the term is USED here, with where it lives.
 | fresh-write window               | hot-dir-migrate's `freshWriteMinutes`: a session dir with writes newer than the window is skipped — it belongs to a live session, not a stale leftover                                                                                         | `modules/hot-dir-migrate/`                      |
 | depth tripwire                   | hot-dir-migrate's `discoveryDepth` WARN: a session dir sitting one level below the discovery cap warns instead of silently staying on the OS disk                                                                                              | `modules/hot-dir-migrate/`                      |
 | contamination guard              | `mkFilesystem`'s cross-filesystem option check: fs-specific mount options (e.g. btrfs `discard=async`) used on another fsType throw at eval — the runtime failure class is mount-fail → local-fs.target → emergency shell                      | `lib/filesystems.nix`                           |
+| deaf trigger                     | A path unit whose target never deactivates: systemd's path.c removes the inotify watch while the target is active, so a RemainAfterExit=yes target parks the path unit in `running` watching NOTHING — it fires at most once per boot (boot-mirror-sync, live 2026-11-22; class 11 of systemd-shape-audit, system + user managers) | `modules/boot-mirror/`, `modules/systemd-shape-audit/` |
 
 ## Bounded contexts
 
