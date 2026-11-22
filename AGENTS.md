@@ -148,10 +148,13 @@ serviceConfig = lib.mkMerge [
 
 1. **Eval-contract checks** (`tests/boot-mirror.nix` →
    `checks.x86_64-linux.boot-mirror-contract`): eval a fixture host with the
-   module enabled, force `config.system.build.toplevel.drvPath` (full merge;
-   module assertions throw here), then pin observable unit shapes with
-   `lib.throwIfNot` chains. No VM needed when the contract is eval-observable.
-2. **VM tests** (`tests/wifi-failover.nix` → `wifi-failover-vm`, `tests/boot-mirror-vm.nix` → `boot-mirror-vm`):
+   module enabled, gate on `config.assertions` (module assertions throw
+   here), then pin observable unit shapes with `lib.throwIfNot` chains. No
+   VM needed when the contract is eval-observable.
+2. **VM tests** (`tests/wifi-failover.nix` → `wifi-failover-vm`,
+   `tests/boot-mirror-vm.nix` → `boot-mirror-vm`, `tests/hot-tier-journal.nix`
+   + `tests/hot-tier-caddy.nix` → hot-tier VMs, `tests/hot-dir-migrate.nix` →
+   `hot-dir-migrate-vm`):
    `runNixOSTest` exercising the REAL deployed ExecStart binary; a veth
    PEER's admin state simulates cable carrier (peer down = NO-CARRIER with
    the route still pinned — the exact production bug shape).

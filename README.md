@@ -58,6 +58,20 @@ mutation-proven contract checks — extracted from (and consumed by)
   tripwire, empty-target auto-heal, dry-run rehearsal, timer-pulled never
   boot-gated. VM-tested across the full behavior matrix.
 
+### Eval-time audit gates
+
+Ten more modules are pure eval-time audits — they fail `nix flake check`
+when a host's systemd units carry a known bug shape, so the regression dies
+at build time instead of in production:
+`timeout-audit` (global start-timeout floor), `start-limit-audit`,
+`tmp-cleaner-audit`, `systemd-shape-audit` (11 invalid/racy unit shapes
+across system + user managers, e.g. path units triggering
+RemainAfterExit=yes services), `port-registry-audit` (port literals vs the
+consumer's registry), `gatus-coverage-audit`, `mount-gating-audit`,
+`memory-watermark-audit`, `dynamic-user-audit`, `capability-grant-audit`.
+Import them like any module; each carries `allow*` options for deliberate,
+comment-justified exceptions.
+
 Each module dir carries its own README with the consumption snippet and
 option notes.
 
