@@ -215,6 +215,17 @@ in {
           message = "boot-mirror-sync.service: the mount condition must stay — a path-unit trigger with an unmounted mirror must condition-skip, never fail";
         }
         {
+          # Self-pinned contract (2026-11-22 deaf-trigger class): the path
+          # unit re-arms its watch only once this service is INACTIVE again.
+          # RemainAfterExit parks it active(exited) after the first successful
+          # run, so the trigger fires at most once per boot and every later
+          # gen-install silently leaves the mirror stale.
+          assertion =
+            (config.systemd.services.boot-mirror-sync.serviceConfig.RemainAfterExit or false)
+            != true;
+          message = "boot-mirror-sync.service: must not set RemainAfterExit — a path unit cannot re-trigger an active(exited) target, so the watch goes deaf after the first successful sync";
+        }
+        {
           # Self-pinned contract: the post-rsync `diff -r` verification gate
           # (step 4 of the sync script) is the "the 2nd boot disk must be
           # tree-identical or it is a lie" half. It is runtime-only by
@@ -287,7 +298,13 @@ in {
           ioTier.background
           {
             Type = "oneshot";
-            RemainAfterExit = true;
+            # NO RemainAfterExit (2026-11-22 deaf-trigger fix, pinned by the
+            # assertion above): a path unit re-arms its watch only once its
+            # target is inactive again. RemainAfterExit=true parked this unit
+            # active(exited) after the boot-time sync, so the watch below
+            # never existed for the rest of the boot — every later sync was
+            # an explicit deploy restart.
+            RemainAfterExit = false;
             ExecStart = lib.getExe syncScript;
             TimeoutStartSec = "5min";
           }
@@ -300,14 +317,24 @@ in {
       # switch-to-configuration, a manual bootctl call) serving yesterday's
       # generation while NVRAM pointed at the mirror. A path unit on the
       # entries dir closes the class for every writer: inotify sees
-      # new/removed .conf files and re-triggers the (RemainAfterExit)
-      # service. restartTriggers would NOT do — that fires on NIX config
-      # changes, not runtime ESP writes. The sync's own reverse-propagation
-      # writes into the same dir and can re-arm the trigger once; the second
-      # run converges (no further source writes), so there is no loop. An
-      # unmounted mirror stays a clean condition-skip: the path unit
-      # activates the service, the service's ConditionPathIsMountPoint skips
-      # it — wants-not-requires preserved.
+      # new/removed .conf files and triggers the sync. restartTriggers
+      # would NOT do — that fires on NIX config changes, not runtime ESP
+      # writes. An unmounted mirror stays a clean condition-skip: the path
+      # unit activates the service, the service's ConditionPathIsMountPoint
+      # skips it — wants-not-requires preserved.
+      #
+      # Deaf-trigger class (2026-11-22): this watch fired at most ONCE per
+      # boot while the service carried RemainAfterExit=true. A path unit
+      # watches only while its target is inactive; a target parked
+      # active(exited) keeps it in `running` with NO inotify watch (live on
+      # evo-x2, systemd 262: every other path unit on the box sat in
+      # `waiting` with its watch present, this one in `running`; every sync
+      # after the boot-time one was an explicit deploy restart). The service
+      # therefore returns to inactive after every run — pinned by the
+      # assertion above, proven at runtime by the VM test's second-write
+      # leg. A path-triggered run cannot loop on its own reverse-propagation
+      # writes: they land while the run holds the path unit in `running`, and
+      # the re-armed watch only sees later writes.
       systemd.paths.boot-mirror-sync = {
         description = "Re-mirror ${src} when loader entries change (any gen-install path)";
         wantedBy = ["multi-user.target"];

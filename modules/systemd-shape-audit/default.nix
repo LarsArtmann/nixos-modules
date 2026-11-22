@@ -101,6 +101,18 @@
 #     services.systemd-shape-audit.allowOneshotIsactiveProbe WITH a
 #     justification comment at the definition site.
 #
+# 11. A path unit whose target service sets RemainAfterExit=yes. A path unit
+#     only watches while its target is inactive; RemainAfterExit parks the
+#     target active(exited) after its first run, the path unit sits in
+#     `running` with NO inotify watch, and every later path change is
+#     silently ignored until something restarts the target — the trigger
+#     fires at most once per boot (live incident 2026-11-22: boot-mirror-sync,
+#     deaf for a whole boot while systemd reported the path unit active).
+#     Scope: system path units; the target is resolved from [Path] Unit=
+#     (default: the same-named .service). Deliberate exceptions go in
+#     services.systemd-shape-audit.allowPathTriggerOnRemainAfterExit WITH a
+#     justification comment at the definition site.
+#
 # Assertions are forced by `nix flake check` (pre-commit + CI); a bare
 # `nix eval ...toplevel.drvPath` does NOT check them.
 #
@@ -161,6 +173,33 @@
         _name: p:
           (p.pathConfig ? PathExists && p.pathConfig.PathExists != null)
           || (p.pathConfig ? PathExistsGlob && p.pathConfig.PathExistsGlob != null)
+      )
+      config.systemd.paths;
+  in
+    lib.attrNames bad;
+
+  # --- class 11: path unit triggering a RemainAfterExit=yes service ---
+  # A path unit only watches while its target is inactive. RemainAfterExit
+  # parks the target active(exited) after its first run, so the path unit
+  # sits in `running` with no inotify watch and the trigger fires at most
+  # once per boot (live 2026-11-22: boot-mirror-sync). The [Path] Unit=
+  # default is the same-named .service (systemd.path(5)). Accepted
+  # RemainAfterExit truthy shapes: bool true or the strings systemd parses
+  # as true.
+  remainAfterExitOn = v: v == true || builtins.elem v ["yes" "true" "on" "1"];
+  pathTriggerOffenders = let
+    bad =
+      lib.filterAttrs (
+        name: p: let
+          unit = p.pathConfig.Unit or "${name}.service";
+          target = lib.removeSuffix ".service" unit;
+          svc = config.systemd.services.${target} or null;
+        in
+          builtins.isString unit
+          && (p.enable or true)
+          && svc != null
+          && remainAfterExitOn (svc.serviceConfig.RemainAfterExit or false)
+          && !builtins.elem name cfg.allowPathTriggerOnRemainAfterExit
       )
       config.systemd.paths;
   in
@@ -637,6 +676,17 @@ in {
         MUST carry a justification comment where it is set.
       '';
     };
+    allowPathTriggerOnRemainAfterExit = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [];
+      description = ''
+        Path unit names whose target deliberately keeps RemainAfterExit=yes
+        (its re-triggering is handled by a separate restart path). Every
+        entry MUST carry a justification comment where it is set. There
+        should be no such entries: a path-triggered oneshot must return to
+        inactive.
+      '';
+    };
   };
 
   config.assertions = [
@@ -677,6 +727,25 @@ in {
         re-fire loop → start-limit-hit. Use PathChanged/PathModified as the
         trigger. (ConditionPathExists on services is the correct existence
         gate and is NOT flagged.)
+      '';
+    }
+    {
+      assertion = pathTriggerOffenders == [];
+      message = ''
+        systemd-shape-audit: path unit(s) triggering a RemainAfterExit=yes service:
+        ${lib.concatStringsSep ", " pathTriggerOffenders}
+        A path unit only watches while its target is inactive. RemainAfterExit
+        parks the target active(exited) after its first run, the path unit
+        sits in `running` with no inotify watch, and every later path change
+        is silently ignored until something restarts the target — the
+        trigger fires at most once per boot (live 2026-11-22:
+        boot-mirror-sync, deaf for a whole boot).
+        Fix: drop RemainAfterExit from the target (a path-triggered oneshot
+        must return to inactive), or restart the target from a separate unit
+        that does not keep it active.
+        Deliberate exception:
+          services.systemd-shape-audit.allowPathTriggerOnRemainAfterExit = [ "<path-unit-name>" ];
+        with a justification comment.
       '';
     }
     {
