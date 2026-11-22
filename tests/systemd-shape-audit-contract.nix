@@ -79,6 +79,11 @@
               RemainAfterExit = true;
             };
           };
+          # class 11, user-manager half: same bug in `systemctl --user`
+          user.services.shape-c11u.serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+          };
           # class 2 (timer half): the matching timer that drives shape-c2
           timers.shape-c2 = {
             wantedBy = ["timers.target"];
@@ -88,6 +93,7 @@
           paths.shape-c3.pathConfig.PathExists = "/tmp/shape-c3";
           # class 11: same-named default target (shape-c11.service)
           paths.shape-c11.pathConfig.PathChanged = "/tmp/shape-c11";
+          user.paths.shape-c11u.pathConfig.PathChanged = "/tmp/shape-c11u";
           # class 4: literal $HOME in a USER unit Exec line
           user.services.shape-c4.serviceConfig.ExecStart = "/bin/app --config $HOME/.config/app";
         };
@@ -113,10 +119,11 @@
                     (expect "nested inside unitConfig"
                       (expect "probe(s) against Type=oneshot"
                         (expect "triggering a RemainAfterExit=yes service"
-                          (builtins.toJSON {
-                            flaggedClasses = 11;
-                            clean = true;
-                          }))))))))))));
+                          (expect "user:shape-c11u"
+                            (builtins.toJSON {
+                              flaggedClasses = 11;
+                              clean = true;
+                            })))))))))))));
 in
   pkgs.runCommand "systemd-shape-audit-contract" {
     inherit contract;

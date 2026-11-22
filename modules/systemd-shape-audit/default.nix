@@ -686,7 +686,7 @@ in {
       '';
     };
     allowPathTriggerOnRemainAfterExit = lib.mkOption {
-      type = lib.types.listOf types.str;
+      type = lib.types.listOf lib.types.str;
       default = [];
       description = ''
         Path unit names (either manager) whose target deliberately keeps

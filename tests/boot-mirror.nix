@@ -59,7 +59,9 @@
                   "boot-mirror contract: ExecStart must run the sync script"
                   (lib.throwIfNot ((svc.serviceConfig.RemainAfterExit or false) != true)
                     "boot-mirror contract: the sync service must not set RemainAfterExit — a path unit cannot re-trigger an active(exited) target (deaf-trigger class)"
-                    (builtins.toJSON {
+                    (lib.throwIfNot (svc.startLimitBurst >= 20)
+                      "boot-mirror contract: the sync service needs start-limit headroom for the live trigger (startLimitBurst >= 20) — every gen-install costs a path-triggered run plus a provisioner restart"
+                      (builtins.toJSON {
                       PathChanged = pathUnit.pathConfig.PathChanged or null;
                       Unit = pathUnit.pathConfig.Unit or null;
                       inherit (pathUnit) wantedBy;
@@ -68,7 +70,8 @@
                       IOSchedulingPriority = svc.serviceConfig.IOSchedulingPriority or null;
                       ProtectSystem = svc.serviceConfig.ProtectSystem;
                       RemainAfterExit = svc.serviceConfig.RemainAfterExit or false;
-                    })))))))));
+                      startLimitBurst = svc.startLimitBurst;
+                    }))))))))));
   contract =
     if failedAssertions != []
     then throw "boot-mirror contract: module assertions failed:\n${lib.concatStringsSep "\n" failedAssertions}"
