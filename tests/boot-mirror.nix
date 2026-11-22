@@ -57,15 +57,18 @@
                 "boot-mirror contract: ProtectSystem=false is load-bearing (EROFS class on the read source)"
                 (lib.throwIfNot (builtins.match ".*/boot-mirror-sync" svc.serviceConfig.ExecStart != null)
                   "boot-mirror contract: ExecStart must run the sync script"
-                  (builtins.toJSON {
-                    PathChanged = pathUnit.pathConfig.PathChanged or null;
-                    Unit = pathUnit.pathConfig.Unit or null;
-                    inherit (pathUnit) wantedBy;
-                    ConditionPathIsMountPoint = svc.unitConfig.ConditionPathIsMountPoint or null;
-                    mountOptions = fileSystems."/boot-mirror".options;
-                    IOSchedulingPriority = svc.serviceConfig.IOSchedulingPriority or null;
-                    ProtectSystem = svc.serviceConfig.ProtectSystem;
-                  }))))))));
+                  (lib.throwIfNot ((svc.serviceConfig.RemainAfterExit or false) != true)
+                    "boot-mirror contract: the sync service must not set RemainAfterExit — a path unit cannot re-trigger an active(exited) target (deaf-trigger class)"
+                    (builtins.toJSON {
+                      PathChanged = pathUnit.pathConfig.PathChanged or null;
+                      Unit = pathUnit.pathConfig.Unit or null;
+                      inherit (pathUnit) wantedBy;
+                      ConditionPathIsMountPoint = svc.unitConfig.ConditionPathIsMountPoint or null;
+                      mountOptions = fileSystems."/boot-mirror".options;
+                      IOSchedulingPriority = svc.serviceConfig.IOSchedulingPriority or null;
+                      ProtectSystem = svc.serviceConfig.ProtectSystem;
+                      RemainAfterExit = svc.serviceConfig.RemainAfterExit or false;
+                    })))))))));
   contract =
     if failedAssertions != []
     then throw "boot-mirror contract: module assertions failed:\n${lib.concatStringsSep "\n" failedAssertions}"

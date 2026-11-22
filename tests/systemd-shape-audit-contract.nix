@@ -1,5 +1,5 @@
 # Eval-contract check for the systemd-shape-audit module: every one of the
-# ten bug classes must be FLAGGED on an offending host (each with its live
+# eleven bug classes must be FLAGGED on an offending host (each with its live
 # incident history), and the audit must stay silent on a clean host. The
 # negative legs in tests/negative/ neuter individual class detectors in the
 # module — each must break this build, proving the classes are still armed.
@@ -72,6 +72,12 @@
             # class 10: is-active probe against a oneshot without RemainAfterExit
             shape-c10-target.serviceConfig.Type = "oneshot";
             shape-c10-probe.script = "systemctl is-active shape-c10-target.service";
+            # class 11: path unit targeting a RemainAfterExit=yes service
+            # (deaf trigger after the first run — boot-mirror-sync class)
+            shape-c11.serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+            };
           };
           # class 2 (timer half): the matching timer that drives shape-c2
           timers.shape-c2 = {
@@ -80,6 +86,8 @@
           };
           # class 3: path unit triggered by PathExists (re-fire loop)
           paths.shape-c3.pathConfig.PathExists = "/tmp/shape-c3";
+          # class 11: same-named default target (shape-c11.service)
+          paths.shape-c11.pathConfig.PathChanged = "/tmp/shape-c11";
           # class 4: literal $HOME in a USER unit Exec line
           user.services.shape-c4.serviceConfig.ExecStart = "/bin/app --config $HOME/.config/app";
         };
@@ -104,15 +112,16 @@
                   (expect "OnFailure nested inside serviceConfig"
                     (expect "nested inside unitConfig"
                       (expect "probe(s) against Type=oneshot"
-                        (builtins.toJSON {
-                          flaggedClasses = 10;
-                          clean = true;
-                        })))))))))));
+                        (expect "triggering a RemainAfterExit=yes service"
+                          (builtins.toJSON {
+                            flaggedClasses = 11;
+                            clean = true;
+                          }))))))))))));
 in
   pkgs.runCommand "systemd-shape-audit-contract" {
     inherit contract;
     passAsFile = ["contract"];
   } ''
     cp "$contractPath" $out
-    echo "systemd-shape-audit-contract: 10 classes flagged, clean host silent" >&2
+    echo "systemd-shape-audit-contract: 11 classes flagged, clean host silent" >&2
   ''
