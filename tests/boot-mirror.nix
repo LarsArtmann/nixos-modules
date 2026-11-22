@@ -62,16 +62,16 @@
                     (lib.throwIfNot (svc.startLimitBurst >= 20)
                       "boot-mirror contract: the sync service needs start-limit headroom for the live trigger (startLimitBurst >= 20) — every gen-install costs a path-triggered run plus a provisioner restart"
                       (builtins.toJSON {
-                      PathChanged = pathUnit.pathConfig.PathChanged or null;
-                      Unit = pathUnit.pathConfig.Unit or null;
-                      inherit (pathUnit) wantedBy;
-                      ConditionPathIsMountPoint = svc.unitConfig.ConditionPathIsMountPoint or null;
-                      mountOptions = fileSystems."/boot-mirror".options;
-                      IOSchedulingPriority = svc.serviceConfig.IOSchedulingPriority or null;
-                      ProtectSystem = svc.serviceConfig.ProtectSystem;
-                      RemainAfterExit = svc.serviceConfig.RemainAfterExit or false;
-                      startLimitBurst = svc.startLimitBurst;
-                    }))))))))));
+                        PathChanged = pathUnit.pathConfig.PathChanged or null;
+                        Unit = pathUnit.pathConfig.Unit or null;
+                        inherit (pathUnit) wantedBy;
+                        ConditionPathIsMountPoint = svc.unitConfig.ConditionPathIsMountPoint or null;
+                        mountOptions = fileSystems."/boot-mirror".options;
+                        IOSchedulingPriority = svc.serviceConfig.IOSchedulingPriority or null;
+                        ProtectSystem = svc.serviceConfig.ProtectSystem;
+                        RemainAfterExit = svc.serviceConfig.RemainAfterExit or false;
+                        inherit (svc) startLimitBurst;
+                      }))))))))));
   contract =
     if failedAssertions != []
     then throw "boot-mirror contract: module assertions failed:\n${lib.concatStringsSep "\n" failedAssertions}"
