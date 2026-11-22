@@ -9,6 +9,10 @@
 # of the primary: a oneshot `boot-mirror-sync` unit runs at boot, on every
 # loader-entries change (a path unit — covers raw `switch-to-configuration`
 # gen-installs, not just deploy flows), and can be restarted by any provisioner.
+# The service returns to INACTIVE after every run: a path unit watches only
+# while its target is inactive, so a RemainAfterExit target would leave the
+# trigger deaf for the rest of the boot (the 2026-11-22 defect — see the
+# Deaf-trigger class note at the path unit).
 # The mirror install keeps loader-owned boot-counting state intact by
 # reverse-propagating the BOOTED ESP's entry renames back to the managed ESP
 # before the forward rsync — a plain forward mirror would `--delete` the
@@ -226,6 +230,16 @@ in {
           message = "boot-mirror-sync.service: must not set RemainAfterExit — a path unit cannot re-trigger an active(exited) target, so the watch goes deaf after the first successful sync";
         }
         {
+          # Self-pinned contract (2026-11-22): headroom for the LIVE trigger.
+          # Every gen-install now costs a path-triggered run plus the
+          # provisioner's restart; the deaf-trigger era paid one start per
+          # deploy. A tight burst turns a deploy wave into a start-limit hit:
+          # the service refuses to start, the path unit goes failed with it,
+          # and the mirror is stale again — the class this module exists for.
+          assertion = config.systemd.services.boot-mirror-sync.startLimitBurst >= 20;
+          message = "boot-mirror-sync.service: startLimitBurst must stay >= 20 — a live path trigger pays two starts per deploy, and a start-limit hit leaves the path unit failed and the mirror stale";
+        }
+        {
           # Self-pinned contract: the post-rsync `diff -r` verification gate
           # (step 4 of the sync script) is the "the 2nd boot disk must be
           # tree-identical or it is a lie" half. It is runtime-only by
@@ -280,7 +294,15 @@ in {
           ];
           ConditionPathIsMountPoint = mirror;
         };
-        startLimitBurst = 5;
+        # Start-limit headroom for a live trigger (2026-11-22): every
+        # gen-install costs a path-triggered run plus the provisioner's
+        # restart, where the deaf-trigger era paid one start per deploy. At
+        # the old burst of 5 two deploys inside five minutes hit the limit:
+        # the service refused to start, the path unit went failed with it,
+        # and the mirror was stale again. 30 per 300s tolerates about a
+        # dozen back-to-back deploys and still bounds a real loop at 30
+        # syncs (pinned >= 20 by the assertion above).
+        startLimitBurst = 30;
         startLimitIntervalSec = 300;
         serviceConfig = lib.mkMerge [
           # ProtectSystem=false (EROFS class, 2026-10-18): every ProtectSystem
@@ -324,17 +346,24 @@ in {
       # skips it — wants-not-requires preserved.
       #
       # Deaf-trigger class (2026-11-22): this watch fired at most ONCE per
-      # boot while the service carried RemainAfterExit=true. A path unit
-      # watches only while its target is inactive; a target parked
-      # active(exited) keeps it in `running` with NO inotify watch (live on
-      # evo-x2, systemd 262: every other path unit on the box sat in
-      # `waiting` with its watch present, this one in `running`; every sync
-      # after the boot-time one was an explicit deploy restart). The service
-      # therefore returns to inactive after every run — pinned by the
-      # assertion above, proven at runtime by the VM test's second-write
-      # leg. A path-triggered run cannot loop on its own reverse-propagation
-      # writes: they land while the run holds the path unit in `running`, and
-      # the re-armed watch only sees later writes.
+      # boot while the service carried RemainAfterExit=true. systemd's path
+      # unit (src/core/path.c) watches only while its target is inactive:
+      # `path_enter_waiting` parks the path unit in `running` WITHOUT a watch
+      # whenever the target is active, and it re-arms only on the target's
+      # deactivation (`path_trigger_notify`). A target parked active(exited)
+      # never deactivates, so the path unit sat in `running` with no inotify
+      # watch for the whole boot — live on evo-x2 (systemd 262): every other
+      # path unit on the box sat in `waiting`, this one in `running`, and
+      # every sync after the boot-time one was an explicit deploy restart.
+      # The service therefore returns to inactive after every run (pinned by
+      # the assertion above, proven at runtime by the VM test's second-write
+      # leg).
+      #
+      # No self-trigger loop: a run holds the path unit in `running` with its
+      # watch removed, so the sync's own reverse-propagation renames in the
+      # watched dir are never seen, and the re-arm on deactivation runs
+      # `path_check_good(from_trigger_notify=true)`, which never reports a
+      # PathChanged condition. Only LATER writes trigger again.
       systemd.paths.boot-mirror-sync = {
         description = "Re-mirror ${src} when loader entries change (any gen-install path)";
         wantedBy = ["multi-user.target"];

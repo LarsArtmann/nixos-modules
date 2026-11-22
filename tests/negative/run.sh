@@ -180,6 +180,17 @@ group_bootmirror() {
 	# only VM-build leg in the harness; ~3min).
 	run_case bootmirror vm-degradation-unpinned boot-mirror-vm fail 'expected the mount to carry the failure' \
 		'tests/boot-mirror-vm.nix' 's|== "exit-code"|== "success"|'
+	# Deaf-trigger class (2026-11-22): restoring RemainAfterExit on the sync
+	# service must trip the module's OWN pin (a path unit cannot re-trigger
+	# an active(exited) target).
+	run_case bootmirror remainafterexit-restored boot-mirror-contract fail 'must not set RemainAfterExit' \
+		'modules/boot-mirror/default.nix' 's|RemainAfterExit = false;|RemainAfterExit = true;|'
+	# VM leg: the same mutation with the eval pin neutered in the same sed
+	# script, so the build reaches the runtime assertion — the second entry
+	# write must then go UNMIRRORED (the deaf trigger) and fail on its own
+	# message (~3min).
+	run_case bootmirror vm-deaf-trigger boot-mirror-vm fail 'path trigger is deaf' \
+		'modules/boot-mirror/default.nix' 's|RemainAfterExit = false;|RemainAfterExit = true;|; s|!= true;|!= "never";|'
 }
 
 # ── hottier: the wants-not-requires + *Directory= trap classes ──
@@ -285,6 +296,12 @@ group_shapeaudit() {
 		'modules/systemd-shape-audit/default.nix' 's|^    "TimeoutStartSec"$|    "TimeoutStartSec-mutated"|'
 	run_case shapeaudit class1-fixture-stripped systemd-shape-audit-contract fail 'class marker missing' \
 		'tests/systemd-shape-audit-contract.nix' 's|Restart = "always";|Restart = "no";|'
+	# class 11 (2026-11-22 deaf-trigger class): neuter the detector, then
+	# strip the fixture — both must surface the class marker.
+	run_case shapeaudit class11-neutered systemd-shape-audit-contract fail 'triggering a RemainAfterExit=yes service' \
+		'modules/systemd-shape-audit/default.nix' 's|remainAfterExitOn (svc.serviceConfig.RemainAfterExit or false)|false|'
+	run_case shapeaudit class11-fixture-stripped systemd-shape-audit-contract fail 'class marker missing' \
+		'tests/systemd-shape-audit-contract.nix' 's|RemainAfterExit = true;|RemainAfterExit = false;|'
 }
 
 # ── portregistry: the never-hardcode-localhost:PORT class ──

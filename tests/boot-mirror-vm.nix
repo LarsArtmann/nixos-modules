@@ -111,7 +111,32 @@ _: {
     # was still blank — nofail did its job.
     machine.succeed("systemctl start 'boot\\x2dmirror.mount'")
     machine.succeed("systemctl start boot-mirror-sync.service")
-    machine.wait_for_unit("boot-mirror-sync.service")
+
+    # 1b. Live path trigger — the 2026-11-22 deaf-trigger class. A path unit
+    # watches only while its target is inactive, so the sync must return to
+    # inactive after a run; a SECOND entry write must then reach the mirror
+    # with NO explicit start/restart. (With RemainAfterExit=true on the
+    # service the watch did not exist for the rest of the boot — the
+    # bootmirror/vm-deaf-trigger leg restores it and must fail right here.)
+    machine.succeed("printf 'title second\n' > /boot/loader/entries/second.conf")
+    try:
+        machine.wait_until_succeeds(
+            "test -e /boot-mirror/loader/entries/second.conf", timeout=30
+        )
+    except Exception:
+        raise AssertionError(
+            "path trigger is deaf: a second entry write was not mirrored without an explicit restart"
+        )
+    machine.wait_until_succeeds(
+        "test \"$(systemctl show boot-mirror-sync.service -p ActiveState --value)\" = inactive",
+        timeout=60,
+    )
+    assert (
+        machine.succeed(
+            "systemctl show boot-mirror-sync.path -p SubState --value"
+        ).strip()
+        == "waiting"
+    ), "the path unit must be watching between runs"
     mirror_entries = machine.succeed("ls /boot-mirror/loader/entries/").strip()
     assert "nixos-vmtest" in mirror_entries, f"mirror missing entry: {mirror_entries!r}"
     # The diff gate ran: unit success IS tree-identity (random-seed excluded,
