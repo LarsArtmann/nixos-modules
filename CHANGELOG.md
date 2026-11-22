@@ -4,6 +4,10 @@ All notable changes to the collection are documented here. The format follows [K
 
 ---
 
+## [Unreleased]
+
+- **Master-red eval bug fixed + the interrupted 2026-11-22 wave verified (2026-11-22)** — the auto-commit daemon had landed an interrupted session in two chunks (766be30 + 3ab8d22), leaving master RED: the `systemd-shape-audit` class-11 user-manager extension fed `lib.attrNames` output (a LIST) into `lib.mapAttrsToList` (needs a SET) — an unconditional eval throw that failed `nix flake check` on BOTH systems. Fixed to a plain `map` (the intended `user:<name>` labelling); the full wave this completes: boot-mirror deaf-trigger hardening (start-limit headroom 5→30 with a self-pinned `>= 20` assertion + contract pin, systemd path.c source-level comment deepening), the class-11 extension to USER path units (contract now pins `user:shape-c11u`), the boot-mirror-vm second-write leg (a second loader-entry write must mirror without a restart; path unit must sit in `waiting` between runs), and 4 new negative-harness cases (`bootmirror/remainafterexit-restored`, `bootmirror/vm-deaf-trigger`, `shapeaudit/class11-neutered`, `shapeaudit/class11-fixture-stripped`). Also: the daemon-resurrected `dprint.json` (deleted 2026-11-12 by decision, re-added byte-identical twice by daemon commits) is deleted again and gitignored so it cannot resurrect; and the `.config/metadata.yaml` TODO row closed — owner identified as projects-management-automation's `MetadataService` (`internal/infrastructure/meta/service.go` writes `<project>/.config/metadata.yaml`); the "may docs sessions populate tags" sub-question stays an owner call.
+
 ## [0.1.0](https://github.com/LarsArtmann/nixos-modules/releases/tag/v0.1.0) - 2026-11-12
 
 First tagged release: the collection's trust floor. 4 modules (wifi-failover,

@@ -24,10 +24,9 @@
 
 ## Medium Impact
 
-| Task                                                    | Status       | Impact | Effort | Evidence                                                                                                                                                    |
-| ------------------------------------------------------- | ------------ | ------ | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Identify the owner/generator of `.config/metadata.yaml` | 🔵 `BLOCKED` | Low    | 10min  | Report §g Q3 (unanswered): created 2026-11-12 14:23, `tags: []`, landed in auto-commit 229f441 — which tool owns it, and may docs sessions populate `tags`? |
-| Dependabot reviewers/assignees config                   | 🔵 `BLOCKED` | Low    | 5min   | Owner preference unknown; `.github/dependabot.yml` works without it                                                                                         |
+| Task                                  | Status       | Impact | Effort | Evidence                                                             |
+| ------------------------------------- | ------------ | ------ | ------ | -------------------------------------------------------------------- |
+| Dependabot reviewers/assignees config | 🔵 `BLOCKED` | Low    | 5min   | Owner preference unknown; `.github/dependabot.yml` works without it |
 
 ## Shipped 2026-11-13 (logged in CHANGELOG.md)
 

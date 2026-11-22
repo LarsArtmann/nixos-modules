@@ -31,7 +31,7 @@ nix build --rebuild -L .#checks.x86_64-linux.module-list  # re-EXECUTE a
 
 - `nix flake check` on x86_64-linux builds the wifi-failover VM test — slow.
   Build individual checks when iterating.
-- aarch64-linux carries every pure-eval check (formatting, lib-eval, the 4
+- aarch64-linux carries every pure-eval check (formatting, lib-eval, the
   eval-contracts, module-list); only the VM checks are x86_64-only. Prove
   eval portability with `nix flake check --all-systems --no-build` (building
   the aarch64 derivations needs aarch64 builders).
@@ -247,6 +247,14 @@ environment override — renaming log lines in `watch.sh` breaks the test.
   (ROADMAP): the `f x.y` misparse class is invisible post-parse, and the
   lexical `[a b]` shape is idiomatic — discriminating needs type info
   (upstream-statix material, not a repo-local gate).
+- The auto-commit daemon commits whatever the working tree holds when it
+  fires, in heuristic chunks — an INTERRUPTED session can therefore land
+  master eval-RED (2026-11-22: the class-11 user-manager extension landed
+  with `lib.mapAttrsToList` fed `lib.attrNames` output — a list into a
+  set-typed builtin, an unconditional throw; the daemon also resurrected
+  the deleted `dprint.json` twice, byte-identical — now gitignored).
+  START a session by running the gates on CURRENT master; never assume
+  HEAD is green because the last session ended clean.
 - SECURITY.md: vulnerabilities go through GitHub private security advisories,
   never public issues.
 
