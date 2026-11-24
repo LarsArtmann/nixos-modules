@@ -10,14 +10,27 @@
   modules,
 }: let
   perModule =
-    lib.mapAttrsToList (name: path: let
-      eval = lib.nixosSystem {
-        system = "x86_64-linux";
-        modules = [path];
-      };
-      prefix = "services.${name}.";
-      isOwn = o: lib.hasPrefix prefix o.name && !(lib.hasInfix "._module." o.name);
-      docList = lib.optionAttrSetToDocList eval.options;
+  lib.mapAttrsToList (name: path: let
+  eval = lib.nixosSystem {
+    system = "x86_64-linux";
+    modules = [path];
+  };
+  docList = lib.optionAttrSetToDocList eval.options;
+  # Option prefix: services.<name>. by collection convention; PATH-tool
+  # modules declare programs.<name>. (modloc, 2026-11-24). Derived from
+  # the module's actual surface so both conventions coexist; a module
+  # declaring NEITHER keeps the services prefix and matches nothing,
+  # exactly the pre-2026-11-24 behavior.
+  declares =
+    p:
+    lib.any (o: lib.hasPrefix p o.name && !(lib.hasInfix "._module." o.name)) docList;
+  prefix =
+    if declares "services.${name}."
+    then "services.${name}."
+    else if declares "programs.${name}."
+    then "programs.${name}."
+    else "services.${name}.";
+  isOwn = o: lib.hasPrefix prefix o.name && !(lib.hasInfix "._module." o.name);
       relative =
         map
         (o: lib.removePrefix prefix o.name)

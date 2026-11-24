@@ -57,6 +57,11 @@ mutation-proven contract checks — extracted from (and consumed by)
   live-writer guard (comm + fd/cwd under /proc), fresh-write window, depth
   tripwire, empty-target auto-heal, dry-run rehearsal, timer-pulled never
   boot-gated. VM-tested across the full behavior matrix.
+- [`modloc`](modules/modloc/) — CLI: lines of code per logical module (the
+  nearest `go.mod` / `Cargo.toml`) instead of per repository; one scc scan
+  per repo with longest-prefix attribution, so nested modules never
+  double-count. The collection's first `programs.*` module (a PATH tool is
+  not a service). Functionally contract-tested (go + rust fixture legs).
 
 ### Eval-time audit gates
 

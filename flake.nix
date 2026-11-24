@@ -1,5 +1,5 @@
 {
-  description = "LarsArtmann NixOS module collection — production modules (wifi failover, boot mirror, hot-disk tiering + migration), systemd hardening lib";
+  description = "LarsArtmann NixOS module collection — production modules (wifi failover, boot mirror, hot-disk tiering + migration), systemd hardening lib, and the modloc per-module LOC CLI";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -118,6 +118,10 @@
             capability-grant-audit-contract = import ./tests/capability-grant-audit-contract.nix {
               inherit lib pkgs;
               module = ./modules/capability-grant-audit;
+            };
+            modloc-contract = import ./tests/modloc-contract.nix {
+              inherit lib pkgs;
+              module = ./modules/modloc;
             };
             module-list = pkgs.runCommand "module-list" {} ''
               # Forces evaluation of every discovered module path and records the
