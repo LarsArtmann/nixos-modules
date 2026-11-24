@@ -61,7 +61,9 @@ mutation-proven contract checks — extracted from (and consumed by)
   nearest `go.mod` / `Cargo.toml`) instead of per repository; one scc scan
   per repo with longest-prefix attribution, so nested modules never
   double-count. The collection's first `programs.*` module (a PATH tool is
-  not a service). Functionally contract-tested (go + rust fixture legs).
+  not a service). Run it bare inside a repo (no path = current directory).
+  Functionally contract-tested (go + rust fixture legs + the CLI contract);
+  the `modloc` mutation group (7 legs) proves each behavior load-bearing.
 
 ### Eval-time audit gates
 

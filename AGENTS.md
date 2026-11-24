@@ -3,9 +3,11 @@
 NixOS module collection: reusable pattern modules (`modules/`), a three-legged
 testing model (`tests/`), and the systemd hardening lib (`lib/`) extracted
 from — and consumed by — [SystemNix](https://github.com/LarsArtmann/SystemNix).
-This repo is a flake library: it builds no packages, exposes `nixosModules.*`,
-`lib`, `checks`, and a `formatter`. There is no application code and no CI
-beyond the flake checks.
+This repo is a flake library: it exposes `nixosModules.*`, `lib`, `checks`, a
+`formatter`, the harness `apps`, and a `devShell`. Its one piece of
+application code is `modules/modloc/` (a colocated CLI script its module wraps
+onto PATH with `writeShellApplication`). CI is `.github/workflows/check.yml`:
+the flake checks plus an aarch64 eval pass on every push.
 
 ## Commands
 
@@ -150,7 +152,13 @@ serviceConfig = lib.mkMerge [
    `checks.x86_64-linux.boot-mirror-contract`): eval a fixture host with the
    module enabled, gate on `config.assertions` (module assertions throw
    here), then pin observable unit shapes with `lib.throwIfNot` chains. No
-   VM needed when the contract is eval-observable.
+   VM needed when the contract is eval-observable. A FUNCTIONAL variant
+   (`tests/modloc-contract.nix` → `checks.*.modloc-contract`) instead runs the
+   REAL built binary against fixtures with known counts and diffs the full
+   output; every leg ends in its own `fail "<marker>"` line so a negative
+   mutation can require that exact marker (the `modloc` group), and a leg
+   whose precondition depends on the sandbox (an unreadable directory) probes
+   it and reports VACUOUS instead of passing silently.
 2. **VM tests** (`tests/wifi-failover.nix` → `wifi-failover-vm`,
    `tests/boot-mirror-vm.nix` → `boot-mirror-vm`, `tests/hot-tier-journal.nix`
    - `tests/hot-tier-caddy.nix` → hot-tier VMs, `tests/hot-dir-migrate.nix` →
@@ -178,6 +186,22 @@ environment override — renaming log lines in `watch.sh` breaks the test.
   misparse is invisible to every linter — the AST IS the misparse.)
 - `tests/negative/run.sh` copies only git-TRACKED files (`git ls-files`) —
   untracked new files silently miss the mutation copies.
+- `writeShellApplication` shellchecks a script BEFORE any contract leg runs,
+  so a negative-harness mutation must stay shellcheck-clean or the build
+  fails "by accident" (marker absent): replacing an `echo` that is a
+  variable's last use trips SC2034. Mutate message text instead of deleting
+  the line (modloc, 2026-11-24).
+- A PATH tool's zero-argument run is the common case. `modloc` shipped with
+  a required `<repo>`: a bare run printed only the header and exited 0, and
+  the owner's first live read was "does not work". CLI modules default to
+  the current directory (as scc does) and never exit 0 on a bare header —
+  say what was empty, on stderr.
+- bash `cd "$path"` parses a leading `-` as options (`cd: -d: invalid
+  option`): a CLI that accepts `--` must follow through with `cd -- "$path"`
+  (modloc, 2026-11-24). And `find` inside a `pipefail` pipeline aborts on
+  ANY unreadable subdirectory; when a partial scan is acceptable, neutralize
+  the status with `|| <one-line warning>` instead of `|| true` so the user
+  learns the result is partial.
 - `tests/*.nix` are functions with three signatures: VM tests take `{pkgs}`
   (wifi-failover ignores it as `_`); eval-contract tests take `{lib, pkgs, module}`
   (boot-mirror, hot-tier, hot-dir-migrate, wifi-failover); the lib contract test takes `{lib, pkgs, collectionLib}`
