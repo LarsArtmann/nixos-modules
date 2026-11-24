@@ -98,7 +98,7 @@ for repo in "${repos[@]}"; do
 		cd -- "$repo" &&
 			{
 				find . \( -name vendor -o -name target -o -name node_modules -o -name .git \) -prune -o -name "$marker" -print ||
-					echo "modloc: unreadable paths under '$repo' were skipped; the table covers the readable tree" >&2
+				echo "modloc: unreadable paths under '$repo' were skipped; the table covers the readable tree" >&2
 			} |
 				sed -e 's|/[^/]*$||' -e 's|^\./||' -e 's|^\.$|.|' | sort -u | jq -Rsc 'split("\n")[:-1]'
 	)

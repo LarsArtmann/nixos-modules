@@ -147,7 +147,7 @@ Nothing shipped broken; the process had two real errors, both caught in-session:
 10. § lib-eval + remaining contract checks build post-change (cheap, warm store).
 11. § docs-gates run in nixos-modules (this report is a new corpus item).
 12. § SystemNix: run full `buildflow`, features-drift eval, and a
-   no-modloc-import baseline eval for the red-by-design claim.
+    no-modloc-import baseline eval for the red-by-design claim.
 13. § File or fix the prune-done-todos.sh:126 buildflow finding
     (close-the-loop; verify pre-existence via `git log` on that file).
 14. § SystemNix FEATURES: decide row + header re-stamp need (doc-counts gate).
