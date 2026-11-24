@@ -14,37 +14,98 @@
 # "OTHER". Semantics proven against a real multi-module monorepo and pinned
 # by tests/modloc-contract.nix.
 #
-# usage: modloc [-l go|rust] <repo> [<repo>...]
+# usage: modloc [-l go|rust] [<repo> [<repo>...]]   (no <repo> = current dir)
 set -euo pipefail
 
+usage() {
+	cat <<'EOF'
+usage: modloc [-l go|rust] [<repo> [<repo>...]]
+
+Count code lines per logical module (the nearest go.mod or Cargo.toml), not
+per repository.
+
+  -l go|rust   attribute by go.mod (default) or by Cargo.toml
+  -h, --help   show this help and exit
+
+Options may appear anywhere. With no <repo>, the current directory is
+scanned. Exit codes: 0 ok, 1 a path is not a directory, 2 usage error.
+EOF
+}
+
+usage_error() {
+	echo "modloc: $*" >&2
+	echo "run 'modloc --help' for usage" >&2
+	exit 2
+}
+
 lang="go"
-if [[ "${1:-}" == "-l" ]]; then
-	lang="$2"
-	shift 2
-fi
+repos=()
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+	-l)
+		[[ $# -ge 2 ]] || usage_error "option -l needs a value (go or rust)"
+		lang="$2"
+		shift 2
+		;;
+	-h | --help)
+		usage
+		exit 0
+		;;
+	--)
+		shift
+		repos+=("$@")
+		break
+		;;
+	-*)
+		usage_error "unknown option: $1 (use -- before a path that starts with -)"
+		;;
+	*)
+		repos+=("$1")
+		shift
+		;;
+	esac
+done
+
 case "$lang" in
 go)
 	ext="go"
 	marker="go.mod"
+	other="rust"
 	;;
 rust)
 	ext="rs"
 	marker="Cargo.toml"
+	other="go"
 	;;
 *)
-	echo "usage: modloc [-l go|rust] <repo> [<repo>...]" >&2
-	exit 2
+	usage_error "unknown language '$lang' for -l (expected go or rust)"
 	;;
 esac
 
+[[ ${#repos[@]} -gt 0 ]] || repos=(".")
+
+for repo in "${repos[@]}"; do
+	if [[ ! -d "$repo" ]]; then
+		echo "modloc: not a directory: $repo" >&2
+		exit 1
+	fi
+done
+
 printf 'repo\tmodule\tfiles\tcode\tcomment\tblank\tlines\n'
 
-for repo in "$@"; do
-	mods=$(cd "$repo" && find . \( -name vendor -o -name target -o -name node_modules -o -name .git \) -prune -o -name "$marker" -print |
-		sed -e 's|/[^/]*$||' -e 's|^\./||' -e 's|^\.$|.|' | sort -u | jq -Rsc 'split("\n")[:-1]')
+for repo in "${repos[@]}"; do
+	mods=$(
+		cd "$repo" &&
+			{
+				find . \( -name vendor -o -name target -o -name node_modules -o -name .git \) -prune -o -name "$marker" -print ||
+					echo "modloc: unreadable paths under '$repo' were skipped; the table covers the readable tree" >&2
+			} |
+				sed -e 's|/[^/]*$||' -e 's|^\./||' -e 's|^\.$|.|' | sort -u | jq -Rsc 'split("\n")[:-1]'
+	)
 
-	(cd "$repo" && scc --by-file --format json .) |
-		jq -r --arg repo "$repo" --argjson mods "$mods" --arg ext ".$ext" '
+	rows=$(
+		(cd "$repo" && scc --by-file --format json .) |
+			jq -r --arg repo "$repo" --argjson mods "$mods" --arg ext ".$ext" '
         def moddir($f):
           [$mods[]
            | . as $m
@@ -69,4 +130,10 @@ for repo in "$@"; do
         | [$repo, .module, (.files|tostring), (.code|tostring), (.comment|tostring), (.blank|tostring), (.lines|tostring)]
         | @tsv
       '
+	)
+	if [[ -n "$rows" ]]; then
+		printf '%s\n' "$rows"
+	else
+		echo "modloc: no .$ext files under '$repo' ($other: modloc -l $other '$repo')" >&2
+	fi
 done
