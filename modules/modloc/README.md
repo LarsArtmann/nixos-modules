@@ -24,10 +24,10 @@ descending.
 
 ## Options
 
-| Option    | Type      | Default                          | Description                        |
-| --------- | --------- | -------------------------------- | ---------------------------------- |
-| `enable`  | bool      | `false`                          | Put modloc on the system PATH      |
-| `package` | package   | wrapped `writeShellApplication`  | The modloc derivation to install   |
+| Option    | Type    | Default                         | Description                      |
+| --------- | ------- | ------------------------------- | -------------------------------- |
+| `enable`  | bool    | `false`                         | Put modloc on the system PATH    |
+| `package` | package | wrapped `writeShellApplication` | The modloc derivation to install |
 
 ## Consumption
 

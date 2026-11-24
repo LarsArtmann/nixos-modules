@@ -24,8 +24,8 @@
 
 ## Medium Impact
 
-| Task                                  | Status       | Impact | Effort | Evidence                                                             |
-| ------------------------------------- | ------------ | ------ | ------ | -------------------------------------------------------------------- |
+| Task                                  | Status       | Impact | Effort | Evidence                                                            |
+| ------------------------------------- | ------------ | ------ | ------ | ------------------------------------------------------------------- |
 | Dependabot reviewers/assignees config | 🔵 `BLOCKED` | Low    | 5min   | Owner preference unknown; `.github/dependabot.yml` works without it |
 
 ## Shipped 2026-11-13 (logged in CHANGELOG.md)

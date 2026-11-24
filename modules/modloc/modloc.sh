@@ -18,21 +18,33 @@
 set -euo pipefail
 
 lang="go"
-if [[ "${1:-}" == "-l" ]]; then lang="$2"; shift 2; fi
+if [[ "${1:-}" == "-l" ]]; then
+	lang="$2"
+	shift 2
+fi
 case "$lang" in
-  go)   ext="go"; marker="go.mod" ;;
-  rust) ext="rs"; marker="Cargo.toml" ;;
-  *) echo "usage: modloc [-l go|rust] <repo> [<repo>...]" >&2; exit 2 ;;
+go)
+	ext="go"
+	marker="go.mod"
+	;;
+rust)
+	ext="rs"
+	marker="Cargo.toml"
+	;;
+*)
+	echo "usage: modloc [-l go|rust] <repo> [<repo>...]" >&2
+	exit 2
+	;;
 esac
 
 printf 'repo\tmodule\tfiles\tcode\tcomment\tblank\tlines\n'
 
 for repo in "$@"; do
-  mods=$(cd "$repo" && find . \( -name vendor -o -name target -o -name node_modules -o -name .git \) -prune -o -name "$marker" -print \
-    | sed -e 's|/[^/]*$||' -e 's|^\./||' -e 's|^\.$|.|' | sort -u | jq -Rsc 'split("\n")[:-1]')
+	mods=$(cd "$repo" && find . \( -name vendor -o -name target -o -name node_modules -o -name .git \) -prune -o -name "$marker" -print |
+		sed -e 's|/[^/]*$||' -e 's|^\./||' -e 's|^\.$|.|' | sort -u | jq -Rsc 'split("\n")[:-1]')
 
-  (cd "$repo" && scc --by-file --format json .) \
-    | jq -r --arg repo "$repo" --argjson mods "$mods" --arg ext ".$ext" '
+	(cd "$repo" && scc --by-file --format json .) |
+		jq -r --arg repo "$repo" --argjson mods "$mods" --arg ext ".$ext" '
         def moddir($f):
           [$mods[]
            | . as $m

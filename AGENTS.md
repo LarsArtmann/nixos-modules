@@ -153,11 +153,11 @@ serviceConfig = lib.mkMerge [
    VM needed when the contract is eval-observable.
 2. **VM tests** (`tests/wifi-failover.nix` → `wifi-failover-vm`,
    `tests/boot-mirror-vm.nix` → `boot-mirror-vm`, `tests/hot-tier-journal.nix`
-   + `tests/hot-tier-caddy.nix` → hot-tier VMs, `tests/hot-dir-migrate.nix` →
-   `hot-dir-migrate-vm`):
-   `runNixOSTest` exercising the REAL deployed ExecStart binary; a veth
-   PEER's admin state simulates cable carrier (peer down = NO-CARRIER with
-   the route still pinned — the exact production bug shape).
+   - `tests/hot-tier-caddy.nix` → hot-tier VMs, `tests/hot-dir-migrate.nix` →
+     `hot-dir-migrate-vm`):
+     `runNixOSTest` exercising the REAL deployed ExecStart binary; a veth
+     PEER's admin state simulates cable carrier (peer down = NO-CARRIER with
+     the route still pinned — the exact production bug shape).
 3. **Negative mutation tests** (`tests/negative/run.sh`): copy the
    git-tracked tree WITHOUT `.git`, apply ONE sed mutation per case, build
    the check from the copy with `nix build --impure`, and require the
