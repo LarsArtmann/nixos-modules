@@ -24,9 +24,10 @@
 
 ## Medium Impact
 
-| Task                                  | Status       | Impact | Effort | Evidence                                                            |
-| ------------------------------------- | ------------ | ------ | ------ | ------------------------------------------------------------------- |
-| Dependabot reviewers/assignees config | 🔵 `BLOCKED` | Low    | 5min   | Owner preference unknown; `.github/dependabot.yml` works without it |
+| Task                                                                                               | Status       | Impact | Effort | Evidence                                                                                                                                                                                  |
+| -------------------------------------------------------------------------------------------------- | ------------ | ------ | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dependabot reviewers/assignees config                                                              | 🔵 `BLOCKED` | Low    | 5min   | Owner preference unknown; `.github/dependabot.yml` works without it                                                                                                                       |
+| Land the modloc CLI fix on a host: push `master`, re-float `nixos-modules` in the consumer, deploy | 🔵 `BLOCKED` | Medium | 15min  | Owner-gated (push + deploy). Until then the deployed `modloc` prints only its header on a bare run; `modloc .` works. Fix + contract + `modloc` negative group green in-tree (2026-11-25) |
 
 ## Shipped 2026-11-13 (logged in CHANGELOG.md)
 
