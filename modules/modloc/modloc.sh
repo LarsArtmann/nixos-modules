@@ -95,7 +95,7 @@ printf 'repo\tmodule\tfiles\tcode\tcomment\tblank\tlines\n'
 
 for repo in "${repos[@]}"; do
 	mods=$(
-		cd "$repo" &&
+		cd -- "$repo" &&
 			{
 				find . \( -name vendor -o -name target -o -name node_modules -o -name .git \) -prune -o -name "$marker" -print ||
 					echo "modloc: unreadable paths under '$repo' were skipped; the table covers the readable tree" >&2
@@ -104,7 +104,7 @@ for repo in "${repos[@]}"; do
 	)
 
 	rows=$(
-		(cd "$repo" && scc --by-file --format json .) |
+		(cd -- "$repo" && scc --by-file --format json .) |
 			jq -r --arg repo "$repo" --argjson mods "$mods" --arg ext ".$ext" '
         def moddir($f):
           [$mods[]
@@ -134,6 +134,6 @@ for repo in "${repos[@]}"; do
 	if [[ -n "$rows" ]]; then
 		printf '%s\n' "$rows"
 	else
-		echo "modloc: no .$ext files under '$repo' ($other: modloc -l $other '$repo')" >&2
+		echo "modloc: no .$ext files under '$repo'; for $other run: modloc -l $other '$repo'" >&2
 	fi
 done
