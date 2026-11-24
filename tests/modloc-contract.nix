@@ -55,19 +55,21 @@
   header = lib.concatStringsSep "\t" ["repo" "module" "files" "code" "comment" "blank" "lines"];
 
   expectedGo = pkgs.writeText "modloc-expected-go" (
-    lib.concatStringsSep "\n" [
+    (lib.concatStringsSep "\n" [
       header
       (tsvRow "${fixture}" "." 2 3)
       (tsvRow "${fixture}" "internal/y" 2 2)
-    ]
+    ])
+    + "\n"
   );
   expectedRust = pkgs.writeText "modloc-expected-rust" (
-    lib.concatStringsSep "\n" [
+    (lib.concatStringsSep "\n" [
       header
       (tsvRow "${fixture}" "." 1 3)
       (tsvRow "${fixture}" "crates/one" 1 2)
       (tsvRow "${fixture}" "crates/two" 1 1)
-    ]
+    ])
+    + "\n"
   );
 
   contract =
