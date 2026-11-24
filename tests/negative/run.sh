@@ -32,7 +32,7 @@ SYSTEM="$(uname -m)-linux"
 WORK="$(mktemp -d "${XDG_CACHE_HOME:-$HOME/.cache}/negative-collection.XXXXXX")"
 [ "${KEEP:-0}" = "1" ] || trap 'rm -rf "$WORK"' EXIT
 
-ALL_GROUPS="bootmirror hottier hotdirmigrate wififailover timeoutaudit startlimit tmpcleaner shapeaudit portregistry gatuscoverage mountgating memwatermark dynamicuser capgrant lib optionsjson"
+ALL_GROUPS="bootmirror hottier hotdirmigrate wififailover timeoutaudit startlimit tmpcleaner shapeaudit portregistry gatuscoverage mountgating memwatermark dynamicuser capgrant lib optionsjson modloc"
 
 if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
 	sed -n 's/^# \?//p' "$0" | sed -n '2,30p'
@@ -145,7 +145,7 @@ run_case() {
 	esac
 }
 
-ALL_GROUPS="bootmirror hottier hotdirmigrate wififailover timeoutaudit startlimit tmpcleaner shapeaudit portregistry gatuscoverage mountgating memwatermark dynamicuser capgrant lib optionsjson"
+ALL_GROUPS="bootmirror hottier hotdirmigrate wififailover timeoutaudit startlimit tmpcleaner shapeaudit portregistry gatuscoverage mountgating memwatermark dynamicuser capgrant lib optionsjson modloc"
 
 # ── bootmirror: the 2026-10-17 gen-922 stale-boot class ──
 # These legs moved from SystemNix scripts/negative-test-lints.sh when the
@@ -370,6 +370,27 @@ group_capgrant() {
 		'modules/capability-grant-audit/default.nix' 's|!builtins.elem name cfg.allow|false|'
 	run_case capgrant fixture-stripped capability-grant-audit-contract fail 'the guard must flag ungranted DAC caps' \
 		'tests/capability-grant-audit-contract.nix' 's|User = "app";|User = "root";|'
+}
+
+# ── modloc: the bare-run silent-header class (2026-11-24) — each CLI behavior
+#    tests/modloc-contract.nix pins must be load-bearing in modloc.sh ──
+group_modloc() {
+	run_case modloc green-control modloc-contract pass - \
+		'modules/modloc/modloc.sh' '-'
+	run_case modloc cwd-default-dropped modloc-contract fail 'a bare run must scan the current directory' \
+		'modules/modloc/modloc.sh' 's|repos=(".")|repos=()|'
+	run_case modloc help-dropped modloc-contract fail 'help must exit 0' \
+		'modules/modloc/modloc.sh' 's#-h | --help)#-hh | --help)#'
+	run_case modloc prevalidate-dropped modloc-contract fail 'every path must be validated before the header is printed' \
+		'modules/modloc/modloc.sh' 's|exit 1$|true|'
+	run_case modloc dash-path-broken modloc-contract fail 'a path starting with - must scan after --' \
+		'modules/modloc/modloc.sh' 's|cd -- "|cd "|'
+	run_case modloc other-relabeled modloc-contract fail 'files outside every marker must land on OTHER' \
+		'modules/modloc/modloc.sh' 's|else "OTHER" end|else "OTHERX" end|'
+	run_case modloc walk-tolerance-dropped modloc-contract fail 'an unreadable subdirectory must not abort the scan' \
+		'modules/modloc/modloc.sh' 's|echo "modloc: unreadable paths.*>&2|false|'
+	run_case modloc empty-notice-dropped modloc-contract fail 'an empty scan must say so on stderr' \
+		'modules/modloc/modloc.sh' 's|files under|files underneath|'
 }
 pids=()
 for g in $ALL_GROUPS; do
