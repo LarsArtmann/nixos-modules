@@ -7,7 +7,7 @@ This repo is a flake library: it exposes `nixosModules.*`, `lib`, `checks`, a
 `formatter`, the harness `apps`, and a `devShell`. Its one piece of
 application code is `modules/modloc/` (a colocated CLI script its module wraps
 onto PATH with `writeShellApplication`). CI is `.github/workflows/check.yml`:
-the flake checks plus an aarch64 eval pass on every push.
+the flake checks plus the aarch64 eval pass on pushes to master and PRs.
 
 ## Commands
 
