@@ -73,6 +73,15 @@ Raw ideas:
 - Docs automation: per-module option tables generated from the options-json
   check output; FEATURES infra table split shipped vs pending; the lib/README
   fork ledger with per-helper SystemNix consumer counts, auto-generated
+- modloc CLI growth (raw ideas from the 2026-11-25 status report §f.9–§f.13,
+  §f.22, §f.23): `--format json` per-module rows for tooling consumers,
+  `--sort code|lines|files|module` and `--top N`, `--exclude-dir` extra
+  prunes (the default list stays), `-l all` multi-language single pass, a
+  fleet sweep (`modloc ~/projects/*` note or a `--fleet` mode),
+  `--version`, and a pinned check for the negative-harness group and case
+  counts cited in FEATURES
+- A `homeManagerModules` surface so PATH tools (modloc) reach machines
+  outside NixOS, on real demand
 
 ### 3. Ship eval-time audit gates as modules
 

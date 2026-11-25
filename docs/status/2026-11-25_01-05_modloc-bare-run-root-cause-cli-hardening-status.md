@@ -1,4 +1,4 @@
-# modloc "does not work in webphone": root cause, CLI hardening, contract + negative group — session status & self-review
+# modloc "does not work in webphone": root cause, CLI hardening, contract + negative group, session status & self-review
 
 **2026-11-25 01:05 CET · session-scope report (owner question → diagnosis → fix in nixos-modules → proof on the built binary; landing on evo-x2 in flight, not mine)**
 
@@ -19,15 +19,21 @@ one-tab re-indent of `05b6917`); pure checks `formatting`,
 `options-readme-drift`, `tests-wiring`, `module-list`, `modloc-contract`
 rc=0 and `nix flake check --all-systems --no-build` → "all checks passed!"
 (`06`/`07` logs, tree state `210eced`); `dprint check` clean on the five
-edited markdown files; `git ls-remote origin master` = `05b6917` (01:02).
-Pinned: nixos-modules `05b6917`, SystemNix `caa2e0dab` (its committed lock
-already carries nixos-modules `210eced`, its working-tree lock `05b6917`).
+edited markdown files; `nix run .#docs-gates -- run .` AFTER this report
+and its harvest rows → rc=0, all ten gates PASS, 30 §f items parsed
+(`11-docsgates-after.log`, 01:07); `git ls-remote origin master` =
+`05b6917` (01:02).
+Pinned: the code this report verified is nixos-modules `05b6917`; HEAD at
+report time is `d983357` (= `05b6917` plus this report's first write).
+SystemNix HEAD at report time is `1c2a3bf9f`; its committed lock reached
+nixos-modules `210eced` by `caa2e0dab` (01:02:11) and its working-tree lock
+was already `05b6917` at 01:03.
 NOT verified — GitHub CI for `210eced` and `05b6917` (two runs
 `in_progress` at 01:02, the first VM legs on this tree); every check I did
 not build (lib-eval, the other contract checks, VM tests); the full negative
 harness (only the `modloc` group ran); the fix LIVE on evo-x2's PATH (a
-foreign `nix run .#deploy` started 01:02:46 and was at step 1 at 01:03;
-live PATH still `kslmqjq6-modloc`, generation `system-1029`); behavior
+foreign `nix run .#deploy` started 01:02:46 and was still at step 1 at
+01:08; live PATH still `kslmqjq6-modloc`, generation `system-1029`); behavior
 inside the owner's interactive fish (probes ran in the agent bash tool
 shell, `DIRENV_DIFF` set); parity diff (no `lib/` change); who re-indented
 one line each in `modloc.sh` and the 08-58 report at 00:58:58.
@@ -48,7 +54,8 @@ webphone; every directory behaved the same.
 ## a) FULLY DONE
 
 All items are committed by the auto-commit daemon and are on
-`origin/master` (pushed by automation, `git ls-remote` at 01:02).
+`origin/master` (`git ls-remote` at 01:02; this session never ran
+`git push`).
 
 1. **Diagnosis** — reproduced every dead-end on the deployed binary
    `/nix/store/kslmqjq6…-modloc` (byte-identical to the repo source modulo
@@ -93,20 +100,30 @@ All items are committed by the auto-commit daemon and are on
    shellcheck-before-contract for mutations, zero-argument PATH tools,
    `cd --`, `find` under `pipefail`), a BLOCKED TODO row for the landing.
 6. **Immediate answer for the owner** — `modloc .` works today with the
-   deployed binary (verified in webphone and in SystemNix: `pkgs/ai-meter`
-   1 891 and `pkgs/gatus-alert-relay` 862 code lines).
+   deployed binary (verified 01:09 in webphone and in SystemNix, where the
+   rows are `pkgs/ai-meter` and `pkgs/gatus-alert-relay`).
 7. **Predecessor follow-ups closed by the above** (08-58 report rows):
    f.5 AGENTS.md identity, f.6 `OTHER` leg, f.7 invalid-`-l` + no-args
    legs, f.8 negative group, f.11 docs-gates run, f.15 usage/exit codes,
    f.16 `-l` anywhere. Observed already gone (not by this session): f.26
    `/tmp/bin/modloc`, `/tmp/bin/scc`, `/tmp/modloc-test` no longer exist.
+8. **This report + its harvest** — `docs-gates freshness --dump-items`
+   parses exactly the 30 §f rows of section f; every one is routed
+   (TODO_LIST: the live-proof row (BLOCKED until the switch), the polish
+   pass, CI watch, annotate, negative legs, two `(repo: SystemNix)` rows,
+   four owner-call BLOCKED rows plus the extended tag-decision row, four
+   hygiene rows; ROADMAP: the modloc feature ideas and
+   `homeManagerModules`). The
+   stale landing TODO row ("push, re-float") is corrected to what remains
+   (post-switch proof), and the predecessor's unharvested row 22 is a
+   BLOCKED row. The battery went from red (freshness + audit-all) to rc=0.
 
 ## b) PARTIALLY DONE
 
 1. **Landing on evo-x2's PATH** — pushed (automation), SystemNix lock
    floated to `210eced` by 01:02:11 (committed in `caa2e0dab`; working
-   tree already at `05b6917`), a deploy started 01:02:46 that is not this
-   session's. Open: the post-switch proof (bare `modloc` in webphone →
+   tree already at `05b6917` at 01:03), a deploy started 01:02:46 that is
+   not this session's (at step 2, configuration evaluation, 01:09). Open: the post-switch proof (bare `modloc` in webphone →
    rows; `/run/current-system` equals the newest `system-N-link`).
    Blocker: the foreign deploy must finish. Effort S once it switched.
 2. **Polish pass on the new script** (planned, paused for this report) —
@@ -115,15 +132,8 @@ All items are committed by the auto-commit daemon and are on
    that does not exist (split into `no such directory`); no contract leg
    for a path containing spaces. Effort S; needs one contract + one
    negative-group re-run.
-3. **TODO_LIST landing row has a stale premise** — it still says "push
-   `master`, re-float in the consumer"; both already happened. Corrected in
-   this report's harvest pass.
-4. **Predecessor report annotation** — rows f.5/6/7/8/11/15/16 are done but
+3. **Predecessor report annotation** — rows f.5/6/7/8/11/15/16 are done but
    the 08-58 report carries no `done at` marker (ANNOTATE not run).
-5. **docs-gates corpus** — red BEFORE this report on one pre-existing item
-   (08-58 row 22 "Upstream scc issue draft", freshness + audit-all FAIL,
-   `08-docsgates-baseline.log`); harvested as a BLOCKED row in this pass;
-   the post-report battery result is in section e.1.
 
 ## c) NOT STARTED
 
@@ -213,8 +223,6 @@ All items are committed by the auto-commit daemon and are on
 6. **State the precondition of sandbox-dependent legs.** The unreadable
    subtree leg only bites in a sandboxed build; it now prints VACUOUS
    instead of passing silently. Copy that probe pattern.
-7. **Post-report docs-gates battery:** run after this report and its
-   harvest rows; result recorded below in this section once read.
 
 ## f) NEXT (prioritized; ⚠ = owner-gated, § = agent-runnable)
 
@@ -250,7 +258,7 @@ All items are committed by the auto-commit daemon and are on
 19. § (repo: SystemNix) run the full `buildflow` battery and the
     features-drift eval at the deploy.
 20. § (repo: SystemNix) file or fix the `prune-done-todos.sh:126` buildflow
-    finding (close-the-loop; verify pre-exception via `git log`).
+    finding (close-the-loop; verify pre-existence via `git log`).
 21. § (repo: SystemNix) FEATURES: decide row + header re-stamp for modloc.
 22. § Pin the negative-harness group and case counts cited in FEATURES
     (17 groups, 75 cases, 17 green controls today, grep-verified by hand).
