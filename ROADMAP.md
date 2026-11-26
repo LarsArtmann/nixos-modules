@@ -73,15 +73,23 @@ Raw ideas:
 - Docs automation: per-module option tables generated from the options-json
   check output; FEATURES infra table split shipped vs pending; the lib/README
   fork ledger with per-helper SystemNix consumer counts, auto-generated
-- modloc CLI growth (raw ideas from the 2026-11-25 status report §f.9–§f.13,
-  §f.22, §f.23): `--format json` per-module rows for tooling consumers,
-  `--sort code|lines|files|module` and `--top N`, `--exclude-dir` extra
-  prunes (the default list stays), `-l all` multi-language single pass, a
-  fleet sweep (`modloc ~/projects/*` note or a `--fleet` mode),
-  `--version`, and a pinned check for the negative-harness group and case
-  counts cited in FEATURES
-- A `homeManagerModules` surface so PATH tools (modloc) reach machines
-  outside NixOS, on real demand
+- modloc CLI growth — RE-HOMED 2026-11-26 to the successor repo, the
+  standalone Go [`LarsArtmann/modloc`](https://github.com/LarsArtmann/modloc)
+  (decision record: `docs/status/2026-11-26_06-05_modloc-extraction-decision-go-repo-scaffold-self-review.md`).
+  The collection's bash module is frozen and takes no new features. The
+  raw ideas from the 2026-11-25 status report (§f.9–§f.13, §f.22, §f.23)
+  live on there: `--format json` per-module rows for tooling consumers and
+  `--version` are DONE in the successor; `--sort code|lines|files|module`
+  and `--top N`, `--exclude-dir` extra prunes (the default list stays),
+  `-l all` multi-language single pass, a fleet sweep (`modloc ~/projects/*`
+  note or a `--fleet` mode), a project website (website-launch skill) and a
+  release flow (go-release skill) are its open ideas. The pinned check for
+  the negative-harness group and case counts cited in FEATURES stays HERE:
+  it re-pins to 16 groups / 67 cases when the collection module retires
+- A `homeManagerModules` surface so PATH tools reach machines outside
+  NixOS, on real demand. modloc no longer drives it: the successor repo
+  ships its own `nixosModules.modloc` and `homeManagerModules.modloc`
+  (re-homed 2026-11-26)
 
 ### 3. Ship eval-time audit gates as modules
 

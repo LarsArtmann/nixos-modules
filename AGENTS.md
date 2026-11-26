@@ -6,7 +6,12 @@ from — and consumed by — [SystemNix](https://github.com/LarsArtmann/SystemNi
 This repo is a flake library: it exposes `nixosModules.*`, `lib`, `checks`, a
 `formatter`, the harness `apps`, and a `devShell`. Its one piece of
 application code is `modules/modloc/` (a colocated CLI script its module wraps
-onto PATH with `writeShellApplication`). CI is `.github/workflows/check.yml`:
+onto PATH with `writeShellApplication`). That module is FROZEN since
+2026-11-26: a standalone Go successor, `github:LarsArtmann/modloc`, replaces
+it, it takes no new features, and it stays untouched until its consumer cuts
+over and it is retired through `modules/_renames.nix` (ordered steps in the
+"Successor and cutover" section of `modules/modloc/README.md`; retiring it
+first turns every consumer's evaluation red). CI is `.github/workflows/check.yml`:
 the flake checks plus the aarch64 eval pass on pushes to master and PRs.
 
 ## Commands
@@ -282,6 +287,11 @@ environment override — renaming log lines in `watch.sh` breaks the test.
   the deleted `dprint.json` twice, byte-identical — now gitignored).
   START a session by running the gates on CURRENT master; never assume
   HEAD is green because the last session ended clean.
+- A status report is a claim, not a gate result. The 2026-11-26 modloc
+  report said its §f harvest was done while the insertion script had failed
+  on an assert and written nothing, and the daemon committed the report
+  first. Write "harvest done" only after `git status` shows the TODO rows on
+  disk and `nix run .#docs-gates -- run .` is green.
 - SECURITY.md: vulnerabilities go through GitHub private security advisories,
   never public issues.
 
